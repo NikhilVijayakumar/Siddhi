@@ -36,7 +36,7 @@ No NFR is owned here. Consume persistence-recovery's historical and referential 
 
 ## Unresolved questions
 
-Minimum plan shape, milestone dependency rules, approval authority, review triggering and representation of commercial results remain open. The recommended first release is a goal-to-evidence report, NOT an approved release choice; planning breadth must be confirmed. See [grill log](grill-log.md).
+Deep review 2026-10-29 records a recommendation for all eight questions, including the minimum plan fields, dependency blocking rules, review triggering and implementation evidence (see [grill log](grill-log.md)). A recorded recommendation is not an owner approval; the recommended first release is a goal-to-evidence report, NOT an approved release choice, and planning breadth must still be confirmed.
 
 ## Acceptance drafts
 

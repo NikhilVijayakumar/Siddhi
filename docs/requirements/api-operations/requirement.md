@@ -48,7 +48,7 @@ HTTP validates and serializes application operations; portfolio rules remain UI-
 
 ## Unresolved questions
 
-Synchronous/background split, execution model, lifecycle/cancellation/retry contract, errors, pagination and compatibility strategy, client access and benchmark environment remain open. Recommended first release: goal-to-evidence report, NOT an approved release choice. See [grill log](grill-log.md).
+Deep review 2026-10-29 leaves one owner decision: the pre-1.0 compatibility policy and benchmark targets agreed with the desktop consumer, before any latency figure becomes binding. The other seven questions carry recorded recommendations, including synchronous reads and writes with tracked jobs for ingestion and analysis, a six-category error model, and cursor pagination (see [grill log](grill-log.md)). A recorded recommendation is not an owner approval; the goal-to-evidence report remains a recommended first-release target, NOT an approved release choice.
 
 ## Acceptance drafts
 

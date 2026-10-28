@@ -34,7 +34,7 @@ All product packages define observable behavior and supply risk-focused acceptan
 
 ## Unresolved questions
 
-Reference workstation, representative scale, supported dependency/runtime versions, critical coverage thresholds, first contract fixtures and any executable acceptance runner remain open. Recommended first release: goal-to-evidence report, NOT an approved release choice. See [grill log](grill-log.md).
+Deep review 2026-10-29 leaves one owner decision: the reference workstation and workload used for resource and latency measurements. The other seven questions carry recorded recommendations, including real versioned fixtures without private repositories, offline routine tests with separately invoked contract checks, critical-behavior coverage before any percentage, and a pinned Python 3.12/FastAPI/pytest stack with no Gherkin runner (see [grill log](grill-log.md)). A recorded recommendation is not an owner approval; the goal-to-evidence report remains a recommended first-release target, NOT an approved release choice.
 
 ## Acceptance drafts
 

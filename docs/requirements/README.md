@@ -36,6 +36,12 @@ Gherkin feature documents. **These logs are desk reviews, not stakeholder
 interviews.** Recommended answers are not user decisions; unresolved choices
 are explicitly marked Decision needed. No approval or interview is fabricated.
 
+A deep review on 2026-10-29 recorded the options, trade-off and resolution for
+all 96 questions. 88 now carry a recommendation that a draft specification may
+adopt; 8 remain Decision needed because they need owner input the documents
+cannot supply (listed under [known decisions](#historical-detail-and-known-decisions)).
+A recommendation is still not an approval.
+
 ## Recommended delivery order
 
 1. Establish safe local persistence/access and create an independent goal.
@@ -66,8 +72,10 @@ vertical slice rather than implementing a whole adapter or horizontal layer.
 6. Define actual executable tests and run them. Gherkin documents alone have no
    runner or step definitions and prove no implementation behavior.
 
-Only the documentation-process change has a specification in this migration;
-no unresolved product package has been converted into an approved product spec.
+Two change drafts exist: the documentation-process change and
+`be-01-goal-and-persistence` (independent goal on a versioned local database,
+delivery step 1). Both are drafts. No unresolved product package has been
+converted into an approved product specification.
 
 ## Historical detail and known decisions
 
@@ -75,8 +83,13 @@ no unresolved product package has been converted into an approved product spec.
   gaps, and verification evidence.
 - [Retained inputs](_source/README.md) — mixed drafts, explicitly non-authoritative.
 - Each package's grill log records package-specific unresolved decisions.
-- The first useful release, real Vyasa contract, local authorization, publication
-  unit, retention policies, and external automation remain review decisions.
+- The 8 remaining owner decisions: the real Vyasa interface/version
+  (source-ingestion Q2), accepted verification artifact formats (git-evidence Q8),
+  what may leave the machine in a brief and to whom (external-analysis Q5),
+  pre-1.0 compatibility plus benchmark targets (api-operations Q8), recovery
+  targets (persistence-recovery Q2), retention policy (persistence-recovery Q4),
+  local client authentication and origin policy (security Q5), and the reference
+  workstation/workload (engineering-quality Q2).
 
 ## Knowledge References
 

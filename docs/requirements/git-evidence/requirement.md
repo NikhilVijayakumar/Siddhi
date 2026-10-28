@@ -33,7 +33,7 @@ No NFR is owned here. Apply source-ingestion's provenance and source-state rules
 
 ## Unresolved questions
 
-Local versus remote access, history window, changed-path/patch scope, available verification formats, reference rewriting and evidence sufficiency remain open. Recommended first release: goal-to-evidence report, NOT an approved release choice. See [grill log](grill-log.md).
+Deep review 2026-10-29 leaves one owner decision: which verification artifact formats are accepted first, closed by one real test or CI result sample; no format is accepted initially. The other seven questions carry recorded recommendations, including local-only read-only collection, exact revisions with a coverage flag, and separately attributed verification evidence (see [grill log](grill-log.md)). A recorded recommendation is not an owner approval; the goal-to-evidence report remains a recommended first-release target, NOT an approved release choice.
 
 ## Acceptance drafts
 

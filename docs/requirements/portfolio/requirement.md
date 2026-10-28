@@ -37,7 +37,7 @@ No NFR is owned here. Apply persistence-recovery's integrity/history controls, s
 
 ## Unresolved questions
 
-Minimum creation fields, priority scale, outcome-specific achievement confirmation and relationship approval evidence need owner decisions. The goal-to-evidence report is a recommended first-release target, NOT an approved release choice. See the [desk-review questions](grill-log.md).
+Deep review 2026-10-29 records a recommendation for all eight questions, including the minimum creation field set, priority representation, association approval and achievement confirmation (see the [desk-review questions](grill-log.md)). A recorded recommendation is not an owner approval, and the goal-to-evidence report remains a recommended first-release target, NOT an approved release choice.
 
 ## Acceptance drafts
 

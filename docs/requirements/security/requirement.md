@@ -37,7 +37,7 @@ Source documents, paths, metadata and external outputs are untrusted data. Confi
 
 ## Unresolved questions
 
-Authorized filesystem roots and symlink policy, local-client authentication, browser/origin policy, credential storage, remote-access exceptions, diagnostic redaction and future write authorization remain open. Recommended first release: goal-to-evidence report, NOT an approved release choice. See [grill log](grill-log.md).
+Deep review 2026-10-29 leaves one owner decision: the local client authentication and origin policy, closed by accepting or rejecting the recommended loopback binding with a local token for mutating operations. The other seven questions carry recorded recommendations, including canonical-path containment, no stored credentials in the first slice, and a single shared authorization policy for all adapters (see [grill log](grill-log.md)). A recorded recommendation is not an owner approval; the goal-to-evidence report remains a recommended first-release target, NOT an approved release choice.
 
 ## Acceptance drafts
 

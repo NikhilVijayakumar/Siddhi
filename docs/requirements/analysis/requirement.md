@@ -37,7 +37,7 @@ Consume identified portfolio revisions and source snapshots rather than uncontro
 
 ## Unresolved questions
 
-Initial rule library, confirmation sufficiency, conflict handling, final category vocabulary, reference-time policy, report format and retained reproduction inputs require decisions. Recommended first release: goal-to-evidence report, NOT an approved release choice. See [grill log](grill-log.md).
+Deep review 2026-10-29 records a recommendation for all eight questions: a two-rule initial library (explicit declaration; fully observed scope for a named gap), claim-specific precedence with unresolved disagreements preserved, and orthogonal category, freshness and uncertainty fields (see [grill log](grill-log.md)). A recorded recommendation is not an owner approval; the goal-to-evidence report remains a recommended first-release target, NOT an approved release choice.
 
 ## Acceptance drafts
 

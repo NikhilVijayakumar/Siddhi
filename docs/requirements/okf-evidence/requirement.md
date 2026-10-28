@@ -33,7 +33,7 @@ No NFR is owned here. Apply source-ingestion's schema, provenance and explicit-s
 
 ## Unresolved questions
 
-Supported OKF profiles and extensions, concept identity across moves, stale thresholds, meaningful link checks and validation evidence coverage remain open. Recommended first release: goal-to-evidence report, NOT an approved release choice. See [grill log](grill-log.md).
+Deep review 2026-10-29 records a recommendation for all eight questions: OKF v0.2 with this repository's profile only, frontmatter identifiers as concept identity, and staleness requiring a declared validity window or a superseding revision (see [grill log](grill-log.md)). A recorded recommendation is not an owner approval; the goal-to-evidence report remains a recommended first-release target, NOT an approved release choice.
 
 ## Acceptance drafts
 

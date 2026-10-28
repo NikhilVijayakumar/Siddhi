@@ -1,0 +1,355 @@
+name: backend
+version: 1
+description: >
+  Siddhi delivery workflow: the intent-driven lifecycle plus an interface
+  and data contract artifact that fixes the portfolio data model, ingestion
+  contract, analysis engine interface, and migration impact before technical
+  design.
+
+# ============================================================
+# ARTIFACT LIFECYCLE
+#
+# proposal -> specs -> api-contract -> design -> adr -> tasks
+#
+# The api-contract artifact is this repository's addition to the shared
+# intent-driven spine: it fixes the interface coding agents and integrations
+# build against (HTTP/application operations, source adapter calls, manual
+# analysis export/import, CLI commands only when affected, and SQLite data)
+# before the technical design commits to a persistence or service shape.
+# ============================================================
+
+artifacts:
+
+  # ----------------------------------------------------------
+  # 1. PROPOSAL
+  # ----------------------------------------------------------
+  - id: proposal
+    generates: proposal.md
+    description: >
+      Defines the problem, intent, scope, constraints, affected components
+      and data, and the expected outcome.
+    template: proposal.md
+    instruction: |
+      Establish why the change is needed and what outcome is
+      expected before deciding how to implement it.
+
+      Start from the reviewed requirement package under
+      `docs/requirements/` and its grill log. Apply the `knowledge-first`
+      skill before writing: search `knowledge/` for every topic the change
+      touches, create or update missing concepts there first (they must
+      stand alone and never reference this change), then cite them under
+      Knowledge references.
+
+      Inspect the existing repository, requirements under `docs/requirements/`,
+      architecture under `knowledge/architecture/`, existing specs under
+      `openspec/specs/`, and any affected interface and data definitions.
+      Reuse existing conventions and decisions. The application remains a
+      skeleton; architecture and technology proposals are draft, not proof
+      of implemented capabilities or approved requirements. Migrated draft
+      packages contain desk reviews, not stakeholder interviews or approvals.
+      Approved-spec conversion retains the requirement source and rationale;
+      knowledge never depends on delivery artifacts.
+
+      Identify scope, exclusions, dependencies, risks, affected
+      components (HTTP API, application operations, portfolio domain,
+      source adapters, ingestion, deterministic analysis, SQLite persistence,
+      optional external-analysis handoff), interfaces, and stored data.
+      State the roadmap phase the change belongs to without inventing scope.
+
+      Apply the backend focus: interface contracts, data model, trust
+      boundaries, failure modes, data integrity, provenance of observed
+      facts, and migration impact.
+
+      Consult the skills under `skills/backend/` when the change touches
+      a boundary: `api-contract-testing` for interface contracts,
+      `data-ownership-review` for source and portfolio fields, and
+      `database-integration-testing` for SQLite. Apply relevant portions of
+      `deterministic-scanner` only to source discovery/parsing work; its
+      inherited scanner/detector layout is not a required architecture.
+      Use `mcp-contract-review` and `mcp-server-review` only when an MCP
+      interface is actually touched or selected as an upstream source
+      interface. These inherited checklists do not make Siddhi an MCP server
+      or require synchronization or providers.
+
+      Consult the `grill-me` skill when available and applicable to
+      challenge assumptions before finalizing the proposal.
+
+      Identify the OpenSpec change ID and intended Git branch.
+      Keep the proposal limited to one logical change.
+    requires: []
+
+  # ----------------------------------------------------------
+  # 2. SPECIFICATIONS
+  # ----------------------------------------------------------
+  - id: specs
+    generates: specs/**/*.md
+    description: >
+      Defines observable requirements and behavioral scenarios with
+      traceability to the intended change.
+    template: specs.md
+    instruction: |
+      Define observable, specific, and testable system behavior.
+
+      Reuse the terms and rules of the knowledge concepts cited by the
+      proposal; apply `knowledge-first` for any new term the
+      specification introduces.
+
+      Use Given/When/Then scenarios where appropriate and consult
+      the `gherkin-authoring` skill when available.
+
+      Consult the `test-strategy` skill when available to keep
+      requirements verifiable and to place each behavior in the
+      verification layer that owns it: unit (domain and application rules),
+      contract (HTTP/application inputs, outputs, and errors), integration
+      (source adapters, filesystem, Git, manual analysis export/import), or
+      persistence (SQLite). Include CLI or upstream transport checks only
+      when those interfaces are affected.
+
+      Cover positive behavior, negative behavior, validation,
+      boundary conditions, and error handling where applicable.
+      Unknown, missing, or untrusted evidence is behavior: state what
+      the system reports when a fact cannot be established.
+
+      Preserve existing behavior unless the approved change
+      explicitly modifies it.
+
+      Reference existing requirements and dependencies.
+      Do not invent undocumented product or backend behavior.
+
+      Gherkin scenarios are specifications; they are not
+      automatically executable tests without suitable tooling.
+    requires:
+      - proposal
+
+  # ----------------------------------------------------------
+  # 3. API AND DATA CONTRACT (backend addition)
+  # ----------------------------------------------------------
+  - id: api-contract
+    generates: api-contract.md
+    description: >
+      Fixes affected HTTP/application and integration contracts, payloads,
+      error model, trust boundary, data model, and migration impact.
+    template: api-contract.md
+    instruction: |
+      Fix the interface contract before the technical design
+      commits to a persistence or service shape.
+
+      Describe every affected operation — HTTP endpoint, application
+      operation, source adapter call, or manual analysis export/import —
+      with its inputs, outputs, error responses, and required access.
+      Include CLI commands only when affected; include other upstream
+      interfaces only when selected or touched by the approved change.
+      Do not mandate synchronization or provider automation. Coding agents
+      build against this contract, so an unstated default is a decision
+      nobody made.
+
+      State the error model explicitly: which conditions produce which
+      error, what shape the error takes, and whether the error leaks
+      detail the caller must not see.
+
+      State the trust boundary: which inputs are trusted configuration
+      and which are untrusted repository or provider content, which
+      paths and data each operation may read or expose, and which data
+      is machine-local versus portable or explicitly authorized for export.
+
+      Describe the data model: entities, fields, types, constraints,
+      provenance, and the invariants application payloads, SQLite records,
+      and affected import/export formats must hold.
+
+      Describe migration and backward compatibility: how existing
+      HTTP/application consumers, stored data, and affected integration
+      formats survive the change, rollout order, and rollback. State when
+      no migration is needed; do not imply those consumers already exist.
+
+      Trace each operation and field back to the specification
+      requirements it satisfies. Record unresolved contract questions
+      as explicit open questions.
+
+      Consult `api-contract-testing` for affected contracts,
+      `data-ownership-review` for field ownership and precedence, and
+      `database-integration-testing` for persistence constraints.
+      Use `mcp-contract-review` and `mcp-server-review` only when an MCP
+      interface is actually touched or selected as an upstream source
+      interface; otherwise use general security and testing guidance.
+    requires:
+      - specs
+
+  # ----------------------------------------------------------
+  # 4. DESIGN
+  # ----------------------------------------------------------
+  - id: design
+    generates: design.md
+    description: >
+      Defines the technical approach, affected components, interfaces,
+      data flows, and important trade-offs.
+    template: design.md
+    instruction: |
+      Describe how the approved requirements and the API and data
+      contract will be implemented.
+
+      Identify component responsibilities, boundaries, interfaces,
+      contracts, data flows, dependencies, and failure handling.
+
+      Consider security, performance, scalability, data integrity, and
+      maintainability in proportion to the change.
+
+      Reuse existing architecture and document reasons for
+      introducing new patterns or technologies.
+
+      Build on the `knowledge/` concepts the proposal cites and list them
+      under Knowledge References. Record a durable decision as a
+      `type: Decision` concept in `knowledge/decisions/` rather than only
+      in this change.
+
+      Consult the `architecture-review` skill when available and
+      applicable, and keep the layer boundaries of
+      `knowledge/architecture/system-architecture.md`: HTTP API,
+      application operations, portfolio domain, source adapters,
+      ingestion, deterministic analysis, SQLite persistence, and optional
+      external-analysis handoff. Treat draft designs as proposals, not
+      implemented modules or approved product behavior.
+
+      Keep ingestion and routine analysis bounded and deterministic, and keep untrusted
+      repository content out of trusted configuration. Prefer the
+      standard library and already-chosen dependencies (Python 3.12+,
+      Pydantic, SQLite, pytest) over new ones. Do not add dependencies or
+      select a framework through workflow wording.
+
+      Identify significant architectural decisions that require a
+      durable ADR. Avoid unnecessary design complexity for small,
+      local changes.
+    requires:
+      - proposal
+      - api-contract
+
+  # ----------------------------------------------------------
+  # 5. ARCHITECTURE DECISION RECORD
+  # ----------------------------------------------------------
+  - id: adr
+    generates: adr.md
+    description: >
+      Records significant architectural decisions or explicitly documents
+      why no new ADR is required for this change.
+    template: adr.md
+    instruction: |
+      Review the proposed design and determine whether a new durable
+      architectural decision is required.
+
+      When a decision is required, document its context, decision,
+      alternatives, rationale, trade-offs, and consequences using the
+      project's ADR conventions.
+
+      When an existing ADR already covers the decision, reference it
+      rather than creating a duplicate.
+
+      When no new architectural decision is needed, explicitly state
+      that no new ADR is required and explain briefly why.
+
+      Consult the `architectural-decision-records` skill when
+      available. Store each durable decision as a `type: Decision`
+      concept in `knowledge/decisions/` (written to stand alone, without
+      referencing this change) and reference it from `adr.md`.
+    requires:
+      - design
+
+  # ----------------------------------------------------------
+  # 6. TASKS
+  # ----------------------------------------------------------
+  - id: tasks
+    generates: tasks.md
+    description: >
+      Defines ordered, traceable implementation and verification tasks
+      organized into small, testable vertical slices.
+    template: tasks.md
+    instruction: |
+      Create an actionable checklist based on the approved
+      specifications, API and data contract, design, and architectural
+      decisions.
+
+      Break work into small, reviewable vertical slices as defined in
+      `knowledge/practices/vertical-slices.md`: each slice delivers one
+      observable behaviour with its tests and completion evidence; label
+      pure enabling work as a prerequisite. Reference the knowledge
+      concepts each slice depends on.
+
+      Map tasks to requirements, contract operations, and acceptance
+      scenarios where practical.
+
+      Include implementation, testing, verification, and necessary
+      migration and documentation work.
+
+      Follow the `test-driven-development` skill when available, with
+      `pytest-skill` for pytest patterns.
+      Plan Red-Green-Refactor cycles for applicable code changes.
+
+      Use the `acceptance-test-authoring` skill to turn specifications
+      and contract expectations into verifiable acceptance checks.
+
+      Use the `test-strategy` skill when available to choose the
+      verification layer for each task, using the skills under
+      `skills/backend/`.
+
+      Include applicable quality checks and explicit completion
+      criteria. Keep all tasks within the approved scope.
+
+      Do not mark work complete before it has been performed and its
+      result verified.
+    requires:
+      - specs
+      - design
+      - adr
+
+# ============================================================
+# IMPLEMENTATION GATE
+# ============================================================
+
+apply:
+  requires:
+    - tasks
+  tracks: tasks.md
+  instruction: |
+    Implement only the approved OpenSpec change.
+
+    Before modifying code:
+    - Follow the `openspec-git-discipline` skill.
+    - Confirm the correct feature or fix branch.
+    - Review the approved proposal, specifications, API and data
+      contract, design, ADR decision, and tasks.
+    - Inspect the relevant project conventions and skills.
+    - Select `api-contract-testing` for affected HTTP/application, source
+      adapter, or import/export contracts, `data-ownership-review` for
+      source and portfolio fields, and `database-integration-testing`
+      for SQLite schema, queries, transactions, or migrations.
+    - Apply `deterministic-scanner` only where its discovery/parsing checks
+      fit the change, without importing its architecture. Select
+      `mcp-contract-review` and `mcp-server-review` only when an MCP interface
+      is actually touched or selected as an upstream source interface.
+    - Confirm the required implementation tasks are actionable.
+
+    During implementation:
+    - Follow the project's technology-specific conventions.
+    - Use Red-Green-Refactor for applicable code changes.
+    - Implement one testable vertical slice at a time.
+    - Treat repository files, manifests, and provider responses as
+      untrusted input; never execute repository code during ingestion.
+    - Run relevant tests and quality checks.
+    - When a check fails, consult the `test-debugging` skill when
+      available to diagnose it with evidence; never weaken or delete
+      a test to make implementation pass.
+    - Do not weaken requirements or tests merely to make
+      implementation pass.
+    - Keep task checkboxes synchronized with actual progress.
+    - Do not introduce unrelated changes or bypass Git safeguards.
+
+    Before considering implementation complete:
+    - Verify the implementation against the approved requirements and
+      the API and data contract.
+    - Use the `code-reviewer` skill to review the change, and
+      `code-review-security` plus `secrets-scan` for its security pass;
+      `sca-audit` when dependencies change.
+    - Before declaring a roadmap phase complete, run
+      `phase-gate-verification`.
+    - Report tests and checks actually executed.
+    - Identify failures, skipped checks, unavailable tooling, and
+      unresolved verification gaps.
+    - Do not claim successful verification without evidence.

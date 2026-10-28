@@ -49,7 +49,7 @@ Adapters preserve native identity, supported schema/version, observed revision, 
 
 ## Unresolved questions
 
-Real Vyasa contract, supported OpenSpec/OKF versions and layouts, access methods, identity after moves, freshness thresholds, publication unit and interrupted-refresh retry/resume remain open. Recommended first release: goal-to-evidence report; NOT an approved release choice. See [grill log](grill-log.md).
+Deep review 2026-10-29 leaves one owner decision: which real Vyasa interface and artifact version is supported first, closed by one representative export sample. The other seven questions carry recorded recommendations, including the source-snapshot publication unit, identity after renames, and resume/freshness defaults (see [grill log](grill-log.md)). A recorded recommendation is not an owner approval; recommended first release: goal-to-evidence report, NOT an approved release choice.
 
 ## Acceptance drafts
 

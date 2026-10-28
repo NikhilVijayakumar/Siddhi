@@ -36,7 +36,7 @@ Export only the authorized minimal context. Preserve selected portfolio/snapshot
 
 ## Unresolved questions
 
-Serialization and output contract, permitted recipients/data, disclosure review, result correction policy, scope of acceptance effects, agent authorization and whether provider APIs are needed remain open. Recommended first release: goal-to-evidence report, NOT an approved release choice. See [grill log](grill-log.md).
+Deep review 2026-10-29 leaves one owner decision: what may leave the local machine in a brief, and to whom. A minimal default payload and a preview step are recommended, but disclosure needs explicit authorization. The other seven questions carry recorded recommendations, including manual handoff before any provider automation and a versioned result envelope (see [grill log](grill-log.md)). A recorded recommendation is not an owner approval; the goal-to-evidence report remains a recommended first-release target, NOT an approved release choice.
 
 ## Acceptance drafts
 

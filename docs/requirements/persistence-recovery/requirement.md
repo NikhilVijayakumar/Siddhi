@@ -46,7 +46,7 @@ SQLite holds portfolio-owned revisions, normalized source projections, snapshots
 
 ## Unresolved questions
 
-Transaction/publication unit, migration mechanism, startup migration policy, database defaults, backup destination/frequency, recovery targets, interrupted-job handling and retention budgets require agreement. Recommended first release: goal-to-evidence report, NOT an approved release choice. See [grill log](grill-log.md).
+Deep review 2026-10-29 leaves two owner decisions: the recovery-time and data-loss targets, and which historical records may ever be pruned. Both carry recommended defaults (daily backup retained 14 days, 24-hour loss window, one-hour recovery; durable records never pruned) that need the owner's risk acceptance. The other six questions carry recorded recommendations, including the source-snapshot transaction unit and startup migrations that fail closed without auto-resuming work (see [grill log](grill-log.md)). A recorded recommendation is not an owner approval; the goal-to-evidence report remains a recommended first-release target, NOT an approved release choice.
 
 ## Acceptance drafts
 

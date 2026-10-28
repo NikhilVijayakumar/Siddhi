@@ -33,7 +33,7 @@ No NFR is owned here. Apply source-ingestion's schema/provenance/source-authorit
 
 ## Unresolved questions
 
-Initial OpenSpec versions, schema discovery, identity across moved artifacts, workflow completeness rules and availability of validation evidence need confirmation. Recommended first release: goal-to-evidence report, NOT an approved release choice. See [grill log](grill-log.md).
+Deep review 2026-10-29 records a recommendation for all eight questions: initial support limited to this repository's `backend` schema, native identifiers as artifact identity, and completeness checks limited to what the schema declares (see [grill log](grill-log.md)). A recorded recommendation is not an owner approval; recommended first release: goal-to-evidence report, NOT an approved release choice.
 
 ## Acceptance drafts
 

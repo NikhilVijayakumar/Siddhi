@@ -440,6 +440,29 @@ def check_project_config(report: Report) -> None:
     )
 
 
+def check_doc_paths(report: Report) -> None:
+    """Project-authored skills and agent docs must not cite missing knowledge/docs files."""
+    pattern = re.compile(r"\b((?:knowledge|docs/requirements)/[A-Za-z0-9_./-]+\.md)\b")
+    sources = [REPO_ROOT / name for name in ("CLAUDE.md", "GEMINI.md", "AGENTS.md")]
+    sources += [REPO_ROOT / "openspec" / "config.yaml"]
+    sources += sorted((REPO_ROOT / "openspec" / "schemas").rglob("*"))
+    sources += sorted((REPO_ROOT / "skills" / "backend").glob("*/SKILL.md"))
+    sources += sorted((REPO_ROOT / "skills" / "shared").glob("*/SKILL.md"))
+    sources += [REPO_ROOT / "skills" / "README.md"]
+    missing = []
+    for source in sources:
+        if not source.is_file():
+            continue
+        for ref in sorted(set(pattern.findall(read_text(source)))):
+            if not (REPO_ROOT / ref).is_file():
+                missing.append(f"{source.relative_to(REPO_ROOT)} -> {ref}")
+    report.check(
+        "skills, schemas, and agent docs cite only existing knowledge/requirements files",
+        not missing,
+        "\n".join(missing),
+    )
+
+
 def main() -> int:
     configure_stdout()
     report = Report()
@@ -461,6 +484,7 @@ def main() -> int:
     check_skill_references(report)
     check_knowledge(report)
     check_requirements(report)
+    check_doc_paths(report)
     check_schema_resolution(report)
     check_skill_scoping(report)
 

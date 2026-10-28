@@ -9,41 +9,44 @@ description: >-
 
 # Deterministic Scanner
 
-Source of truth: `knowledge/architecture/scanning-and-evidence.md`. This skill is
-the checklist; the document wins on any conflict.
+Sources of truth: `knowledge/architecture/source-adapters.md` (authority,
+interface, trust boundary) and `knowledge/concepts/evidence-semantics.md`
+(observation, absence, conflict, provenance). This skill is the checklist; the
+documents win on any conflict.
 
 ## Rules
 
 1. **No inference.** Metadata comes from deterministic rules over recognized
    evidence (manifests, config files, Git metadata). Never call an LLM, never
    guess from prose. A README that mentions "React" is not evidence of a React
-   dependency (§2.1, §2.2).
+   dependency.
 2. **Evidence for every value.** Each reported value carries an evidence
-   object: `source_type`, `source_ref`, `observed_at`, `revision` (null when
-   unknown), and `detector` id + version. Never fabricate a field you cannot
-   establish (§10, `mcp-interface.md` §6.4).
-3. **Missing is not false.** Use the statuses `observed`, `declared`,
-   `not_detected`, `unknown`, `unsupported`, `inaccessible`, `stale`,
-   `conflicting` (§11). An empty collection means "inspected, none found";
-   an unassessed field gets an explicit status, never an empty list.
+   object: `source_type`, `source_ref`, `observed_at`, and `revision` (null when
+   unknown). Never fabricate a field you cannot establish.
+3. **Missing is not false.** Record the observation outcome the documented
+   vocabulary supports (observed, declared, not found in scope, unknown,
+   unsupported, inaccessible, stale, conflicting). An empty collection means
+   "inspected, none found"; an unassessed field gets an explicit status, never
+   an empty list.
 4. **Read-only and non-executing.** Never run, import, build, or install
    repository content. No `subprocess` on repository scripts, no `exec`, no
-   unpickling, no YAML loaders that construct objects (§2.4).
+   unpickling, no YAML loaders that construct objects.
 5. **Bounded.** Respect configured roots and exclusions; resolve symlinks and
    refuse paths that escape a root; enforce file-size and count limits;
-   report hits as `inaccessible` or `unsupported`, not as crashes (§4.5, §5.3).
+   report hits as `inaccessible` or `unsupported`, not as crashes.
 6. **Minimal content.** Store facts and locations, not raw document bodies,
-   unless the spec explicitly allows it (§10.5).
-7. **Versioned detectors.** Changing a detector's output bumps its version so
-   stale observations can be invalidated (§6.2, §10.4).
+   unless the spec explicitly allows it.
+7. **Versioned interpretation.** Changing how an adapter interprets a source
+   bumps the recorded normalization version, so stale observations can be
+   invalidated.
 
-## Tests every detector change needs
+## Tests every adapter change needs
 
 - Positive: recognized evidence yields the value with correct evidence.
-- Absent: no evidence yields `not_detected`, not an error.
-- Invalid: malformed manifest yields `conflicting`/`unknown` with evidence, scan continues.
+- Absent: no evidence yields the not-found status, not an error.
+- Invalid: malformed manifest yields `conflicting`/`unknown` with evidence, and
+  ingestion continues.
 - Boundary: symlink escaping the root, oversized file, unreadable file.
-- Nested repositories resolve to the documented owner (§4.3).
 
 Use `pytest-skill` for test patterns (`tmp_path` fixture repos), `test-strategy`
 for layer placement.

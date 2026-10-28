@@ -66,10 +66,9 @@ artifacts:
       `database-integration-testing` for SQLite. Apply relevant portions of
       `deterministic-scanner` only to source discovery/parsing work; its
       inherited scanner/detector layout is not a required architecture.
-      Use `mcp-contract-review` and `mcp-server-review` only when an MCP
-      interface is actually touched or selected as an upstream source
-      interface. These inherited checklists do not make Siddhi an MCP server
-      or require synchronization or providers.
+      Use `mcp-server-review` only when an MCP interface is actually touched
+      or selected as an upstream source interface. These inherited checklists
+      do not make Siddhi an MCP server or require synchronization or providers.
 
       Consult the `grill-me` skill when available and applicable to
       challenge assumptions before finalizing the proposal.
@@ -168,9 +167,9 @@ artifacts:
       Consult `api-contract-testing` for affected contracts,
       `data-ownership-review` for field ownership and precedence, and
       `database-integration-testing` for persistence constraints.
-      Use `mcp-contract-review` and `mcp-server-review` only when an MCP
-      interface is actually touched or selected as an upstream source
-      interface; otherwise use general security and testing guidance.
+      Use `mcp-server-review` only when an MCP interface is actually touched
+      or selected as an upstream source interface; otherwise use general
+      security and testing guidance.
     requires:
       - specs
 
@@ -322,8 +321,8 @@ apply:
       for SQLite schema, queries, transactions, or migrations.
     - Apply `deterministic-scanner` only where its discovery/parsing checks
       fit the change, without importing its architecture. Select
-      `mcp-contract-review` and `mcp-server-review` only when an MCP interface
-      is actually touched or selected as an upstream source interface.
+      `mcp-server-review` only when an MCP interface is actually touched or
+      selected as an upstream source interface.
     - Confirm the required implementation tasks are actionable.
 
     During implementation:

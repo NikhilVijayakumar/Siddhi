@@ -221,6 +221,25 @@ def _exists(path: Path) -> bool:
     return os.path.lexists(path)
 
 
+def checkout_stores_symlinks() -> bool:
+    """False when Git materializes symlinks as plain files (core.symlinks=false)."""
+    result = subprocess.run(
+        ["git", "config", "--get", "core.symlinks"], cwd=REPO, capture_output=True, text=True
+    )
+    return result.stdout.strip() != "false"
+
+
+def _is_stale_stub(entry: Path) -> bool:
+    """A serialized reference left behind by a Git symlink stub checkout."""
+    if entry.is_dir() or entry.is_symlink():
+        return False
+    try:
+        value = entry.read_text(encoding="utf-8").strip().replace("\\", "/")
+    except (OSError, UnicodeError):
+        return False
+    return value.startswith("../") and value.rsplit("/", 1)[-1] == entry.name
+
+
 def _remove_link(path: Path) -> None:
     if path.is_symlink():
         path.unlink()
@@ -334,10 +353,10 @@ def sync_agent(name: str, rel: str, skills: list[Path], args) -> list[str]:
 
     if args.prune:
         for entry in sorted(agent_dir.iterdir()) if agent_dir.is_dir() else []:
-            if entry.name not in wanted and _is_link(entry):
+            if entry.name not in wanted and (_is_link(entry) or _is_stale_stub(entry)):
                 action = "would remove" if args.dry_run else "removed"
                 if not args.dry_run:
-                    _remove_link(entry)
+                    entry.unlink() if entry.is_file() else _remove_link(entry)
                 log.append(f"  - {name}: {action} stale link {entry.name}")
     return log
 
@@ -408,7 +427,8 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     if args.verify:
-        return verify(categories, skills, legacy, portable=args.mode == "portable")
+        portable = args.mode == "portable" or not checkout_stores_symlinks()
+        return verify(categories, skills, legacy, portable=portable)
 
     print(f"skill home: {SKILLS_ROOT} ({len(skills)})")
     for category, group in categories.items():

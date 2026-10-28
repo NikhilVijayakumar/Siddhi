@@ -73,7 +73,7 @@ In both branches, never create the root as a side effect: do not run `openspec i
    - Explicitly requests a specific schema by name → use `--schema <schema-name>`
    - Asks to "show workflows" or asks "what workflows" exist → resolve the authoritative root by running `openspec context --json` from the current working directory. If the user explicitly selected a registered store, use `openspec context --json --store "<store-id>"`. Then run `openspec schemas --json` with its working directory set to the returned `root.path` and let them choose. This preserves roots selected by a local `store:` pointer or the global `defaultStore`; when a registered store was explicitly selected, append `--store "<store-id>"` to `openspec schemas --json` as well. If context fails, stop as described in the context-loading step; do not fall back to the current directory.
 
-   **When the project maps teams to schemas:** if `openspec/config.yaml` has a `teams:` section and the proposing team is known, use that team's schema (for example `--schema frontend` for team `fe`). A framework or process change uses the project's default schema. The schema decides the artifact chain, the artifact instructions, and the templates.
+   **When the project maps teams to schemas:** if `openspec/config.yaml` has a `teams:` section and the proposing team is known, use that team's schema (for example `--schema backend` for team `be`). A framework or process change uses the project's default schema. The schema decides the artifact chain, the artifact instructions, and the templates.
 
    Otherwise, omit `--schema` to preserve the configured default.
 

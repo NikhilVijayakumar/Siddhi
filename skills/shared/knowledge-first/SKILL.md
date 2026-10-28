@@ -35,7 +35,7 @@ Requirements, OpenSpec changes, and code **link to** knowledge; knowledge
      `generated: { by, at }`. Agent-written content uses `status: draft` and
      `generated.by: <agent>/<version>`; a person confirming it adds
      `verified: { by: human:<id>, at }`.
-   - State the general truth, not the requirement: write "MCP query tools are
+   - State the general truth, not the requirement: write "Routine ingestion is
      read-only", not "FR-12 requires…". No links or `sources` pointing at
      `docs/requirements/`, `openspec/`, or change-specific
      code; in-bundle paths and external URLs only.

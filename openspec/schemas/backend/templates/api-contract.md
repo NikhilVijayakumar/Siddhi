@@ -49,9 +49,9 @@ configured source/workspace boundaries, and missing or invalid credentials.
 Do not invent an access policy where approval is still pending.
 
 Use general security review guidance for HTTP/application and source boundaries.
-Consult `mcp-contract-review` and `mcp-server-review` only when an MCP interface is
-actually touched or selected as an upstream source interface, not merely because
-local paths, credentials, or untrusted data are involved.
+Consult `mcp-server-review` only when an MCP interface is actually touched or
+selected as an upstream source interface, not merely because local paths,
+credentials, or untrusted data are involved.
 
 ## 6. Data Model
 

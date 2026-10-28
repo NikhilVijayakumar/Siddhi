@@ -43,7 +43,7 @@ Product changes use the `be-` prefix; framework and process changes use `openspe
 - Requirements describe observable, testable behavior. Use Gherkin where appropriate; Gherkin text is not an executable test unless a runner and step definitions exist.
 - Follow test-first (Red–Green–Refactor) with pytest where practical.
 - Treat repository files, manifests, README content, and provider responses as untrusted input; never execute them while scanning.
-- Keep machine-local data (paths, credentials) separate from synchronized metadata (`docs/requirements/data-ownership.md`).
+- Keep machine-local data (paths, credentials) separate from portable, exportable data (`knowledge/architecture/data-ownership.md`).
 - Prefer the standard library and already-chosen dependencies (Pydantic, SQLite, pytest) over new ones.
 - Record significant architectural decisions as `type: Decision` concepts in `knowledge/decisions/`, or state explicitly that none is needed.
 - Implementation tasks are vertical slices (`knowledge/practices/vertical-slices.md`).

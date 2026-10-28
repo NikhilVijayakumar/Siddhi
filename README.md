@@ -8,6 +8,17 @@
 **Codename:** Siddhi (सिद्धि)  
 **Category:** Personal portfolio management, strategic planning, project intelligence and execution tracking
 
+## Documentation authority
+
+The application is a skeleton; the detailed product and architecture narrative
+below describes intended scope, not implemented capabilities or approved contracts.
+Use the [documentation map](docs/README.md), [independent OKF knowledge](knowledge/index.md),
+and [draft requirement packages](docs/requirements/README.md) as the maintained
+entry points. The [migration report](docs/documentation-migration.md) records
+preserved inputs and unresolved decisions. Reviewed requirements will later become
+OpenSpec specifications with knowledge references; knowledge never depends on
+requirements, specifications, changes, or implementation.
+
 ---
 
 ## 1. Overview

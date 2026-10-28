@@ -13,7 +13,7 @@ Kickoff emails, approved requirements, mockups, data files/data dictionaries, us
 ## Procedure
 1. Identify each source and its date/version/owner when available.
 2. Extract atomic requirements and preserve original terminology.
-3. Assign stable IDs, e.g. `REQ-STAFF-001`.
+3. Assign stable IDs, reusing the project's existing scheme when one exists (in Siddhi: `FR-nnn` / `NFR-nnn`, see `docs/requirements/README.md`), else e.g. `REQ-STAFF-001`.
 4. Label every item Confirmed, Proposed, Assumption, Open Question, or Out of Scope.
 5. Separate functional, data, permission, localization, non-functional, and operational requirements.
 6. Detect conflicts, duplicates, vague words, missing states, missing roles, and untestable statements.

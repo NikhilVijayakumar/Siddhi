@@ -103,7 +103,6 @@ upstream source interface, not whenever local paths or credentials are involved.
 | `database-integration-testing` | SQLite schema, queries, transactions, or migrations change | Constraints, transactions, queries, migrations on a disposable database file |
 | `mcp-server-review` | An MCP interface is actually touched or selected as an upstream source interface, with relevant transport/client or security impact | Conditional OWASP MCP security checklist; not a mandate for a Siddhi MCP server |
 | `deterministic-scanner` | Source discovery/parsing or metadata resolution changes make its checks applicable | Conditional inherited checklist for bounded reads, evidence, and observation status; not a mandated scanner/detector architecture |
-| `mcp-contract-review` | An MCP interface is actually touched or selected as an upstream source interface, with relevant tool/payload contract impact | Conditional inherited MCP checklist; reconcile read-only-tool and error rules with the approved upstream contract |
 | `data-ownership-review` | Source or portfolio fields, projections, SQLite records, or import/export ownership changes | Apply ownership, precedence, machine-local isolation, and conflict checks against Siddhi's knowledge and approved behavior, not inherited Vyasa field policies |
 | `phase-gate-verification` | Before declaring a roadmap phase complete | Acceptance matrix from executed checks, later-phase leak check, explicit unverified items |
 
@@ -112,15 +111,13 @@ upstream source interface, not whenever local paths or credentials are involved.
 - Vendored skills stay unmodified; each carries `UPSTREAM.md` (source,
   commit, license) and its upstream `LICENSE`. OWASP skills are CC-BY-4.0,
   which requires keeping the attribution.
-- Vyasa-specific skills (`deterministic-scanner`, `mcp-contract-review`,
-  `data-ownership-review`, `phase-gate-verification`) and MCP checklists are
-  inherited guidance, not product scope. Legacy `docs/` pointers inside a
-  checklist do not override Siddhi's ownership: `knowledge/` owns architecture
-  and engineering knowledge; `docs/requirements/` owns observable behavioral
-  intent; approved OpenSpec specifications refine agreed behavior. Use
-  `knowledge/architecture/data-ownership.md` for Siddhi ownership context.
-  Keep draft status and open decisions explicit; update authoritative project
-  guidance rather than modifying skill content or vendored material.
+- Inherited Vyasa checklists (`deterministic-scanner`, `data-ownership-review`,
+  `phase-gate-verification`) and the vendored `mcp-server-review` are guidance,
+  not product scope. Their pointers never override Siddhi's ownership:
+  `knowledge/` owns architecture and engineering knowledge; `docs/requirements/`
+  owns observable behavioral intent; approved OpenSpec specifications refine
+  agreed behavior. Update authoritative project guidance first; edit an
+  inherited checklist only to keep it consistent with that knowledge.
 - A skill has exactly one home. Two categories may not claim the same skill
   name — the flat agent directories could not link it. `sync_skills.py` fails
   on a duplicate name.

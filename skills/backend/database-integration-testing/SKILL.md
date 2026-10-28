@@ -27,6 +27,9 @@ locking, WAL, or reopening the database.
   business rules rely on.
 - Migrations: apply cleanly on an empty database and upgrade an existing one
   as the project's migration policy requires.
+- Recovery: interrupted write, locked database, backup/restore, and
+  unsupported-version open behave as the persistence-recovery requirements
+  and `knowledge/runbooks/persistence-recovery.md` describe (NFR-045–056).
 - Database-dependent business rules (for example uniqueness or ordering rules
   enforced in SQL).
 
@@ -43,18 +46,18 @@ locking, WAL, or reopening the database.
 
 ## Boundaries
 
-- MCP tool and integration contract shapes → `api-contract-testing`.
+- HTTP/application operation and adapter contract shapes → `api-contract-testing`.
 - The application-layer rules around a query → unit tests; here only when the
   rule *is* the SQL/constraint.
 - Strategy → `test-strategy`; failure diagnosis (constraint violation
   messages, stuck transactions are prime evidence) → `test-debugging`.
-- Do not test through a running MCP client; protocol round-trips belong to contract tests.
+- Do not test through the HTTP layer; request/response round-trips belong to contract tests.
 
 ## Rules
 
 - Treat a constraint violation or `database is locked` error observed while testing as evidence
   about the schema or code — diagnose it; never swallow it with retries.
-- Tag tests with specification IDs (`FR-xx.y`, `FUN-xx`).
+- Tag tests with specification IDs (`FR-nnn` / `NFR-nnn`).
 - Never weaken or delete a check (or a constraint) to make tests pass.
 
 ## Evidence

@@ -9,27 +9,30 @@ description: >-
 
 # Phase Gate Verification
 
-Sources of truth: `docs/requirements/phase-acceptance-criteria.md` (acceptance
-criteria per phase) and `knowledge/product/scope-and-roadmap.md` (phase 1 §4,
-phase 2 §5, phase 3 §6: In Scope, Out of Scope, Deliverables).
+Sources of truth: `knowledge/product/scope-and-roadmap.md` (capability areas,
+proposed dependency-aware sequence, explicit exclusions) and
+`docs/requirements/README.md` (recommended delivery order, package ownership of each `FR-nnn` / `NFR-nnn`). Acceptance criteria are the Gherkin scenarios in the owning package's `features/` plus its `requirement.md`; scenarios are drafts, and Gherkin text is not an executed check until a runner exists.
 
 ## Procedure
 
 1. **Build the matrix.** One row per acceptance criterion and deliverable of
-   the phase: criterion, requirement IDs from `docs/requirements/`, the
+   the phase: criterion, requirement IDs from the owning package (the README
+   ownership table maps each ID to a package; include quality IDs, not only
+   functional), the
    check that proves it (test ID, command, or manual step), and its result.
 2. **Run the checks.** Execute the test suite and every listed command now.
    A result counts only if it was observed in this run; quote the command
    and the decisive output line.
 3. **Classify every row:** `verified`, `failed`, `not run`, `unverifiable`
    (no check exists). Never fold `not run` into `verified`.
-4. **Leak check.** The phase must not depend on out-of-scope work. For
-   phase 1: no Google Sheets client, no provider API client, and no network
-   access in the import graph or test run. For phase 2: no provider discovery.
-   Grep imports and dependency manifests; list any hit.
+4. **Leak check.** The phase must not depend on out-of-scope work. Compare
+   imports and dependency manifests against the explicit exclusions in
+   `knowledge/product/scope-and-roadmap.md`; list any hit.
 5. **Cross-cutting checks.**
-   - Security: `code-review-security`, `secrets-scan`, `sca-audit`, and
-     `mcp-server-review` run on the phase's code.
+   - Security: `code-review-security`, `secrets-scan`, and `sca-audit` run on
+     the phase's code; check the security package's quality IDs (NFR-021–027, 039).
+   - Open decisions: grill-log items marked "Decision needed" for the phase's
+     packages are resolved or explicitly accepted, never assumed.
    - Migrations: the SQLite schema migrates from the previous release and from
      empty (`database-integration-testing`).
    - Failure behavior: inaccessible roots, malformed manifests, locked

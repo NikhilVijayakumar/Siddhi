@@ -23,10 +23,25 @@ class SerializedReferenceTests(unittest.TestCase):
             stub.write_text("unique user content", encoding="utf8")
             self.assertFalse(sync._is_serialized_reference(stub, canonical))
 
+    def test_prunable_stub_is_recognized_but_user_files_are_not(self):
+        with tempfile.TemporaryDirectory() as directory:
+            agent = Path(directory)
+            stub = agent / "example"
+            stub.write_text("../../skills/shared/example", encoding="utf8")
+            self.assertTrue(sync._is_stale_stub(stub))
+            stub.write_text("unique user content", encoding="utf8")
+            self.assertFalse(sync._is_stale_stub(stub))
+
 
 
 
 class PortableReferenceTests(unittest.TestCase):
+    def test_a_non_symlink_checkout_accepts_serialized_references(self):
+        from unittest.mock import patch
+        completed = type("Result", (), {"stdout": "false"})
+        with patch.object(sync.subprocess, "run", return_value=completed):
+            self.assertFalse(sync.checkout_stores_symlinks())
+
     def test_portable_reference_contains_only_relative_target(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

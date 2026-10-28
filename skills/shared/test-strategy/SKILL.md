@@ -29,7 +29,8 @@ diagnose.
 ## Rules
 
 - Every automated check traces to a specification requirement or scenario ID
-  (for example `FR-01.1`, `FUN-03`, `QA-004`). Tag or name the test with that ID
+  (in this repository `FR-nnn` / `NFR-nnn` from `docs/requirements/`, matching
+  the `@FR-nnn` tag on the feature file, or the OpenSpec requirement name). Tag or name the test with that ID
   so acceptance coverage can be reported per requirement.
 - **Authorization is verified at the server boundary**, not only in the UI:
   negative tests must prove a forbidden operation is rejected by the server

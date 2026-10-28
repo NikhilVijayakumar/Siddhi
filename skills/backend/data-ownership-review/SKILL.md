@@ -9,20 +9,22 @@ description: >-
 
 # Data Ownership Review
 
-Source of truth: `docs/requirements/data-ownership.md` (ownership categories
-§3, sources of truth §4, field matrix §5, precedence §6). This skill is the
-checklist; the document wins on any conflict.
+Source of truth: `knowledge/architecture/data-ownership.md` (authority matrix,
+data categories, refresh/absence/conflict, provenance). This skill is the
+checklist; the document wins on any conflict. Behavioral intent lives in
+`docs/requirements/source-ingestion/` and `docs/requirements/portfolio/`
+(FR-001–013, NFR-003–013); field-level policy is still proposed, so record an
+unowned field as an open question rather than inventing a policy.
 
 ## Checklist
 
-1. **Owner named.** Every new or changed field appears in the field-level
-   ownership matrix (§5) with its owner category: repository-owned,
-   repository-observed, Siddhi-generated, portfolio-owned, provider-owned,
-   machine-local, or derived. A field missing from the matrix is a
-   documentation gap; update the doc first.
-2. **Precedence applied.** Resolution follows §6: canonical profile over
-   detected evidence, detected evidence over generated drafts. Generated
-   drafts are never exported as canonical.
+1. **Owner named.** Every new or changed field appears in the authority matrix
+   with its owner category: repository-owned, repository-observed,
+   Siddhi-generated, portfolio-owned, machine-local, or derived. A field
+   missing from the matrix is a documentation gap; update the doc first.
+2. **Precedence applied.** Resolution follows the authority matrix: canonical
+   profile over observed evidence, observed evidence over generated drafts.
+   Generated drafts are never exported as canonical.
 3. **Human values preserved.** Portfolio-owned values (tracking level,
    priority, notes) are authoritative. Siddhi caches them and
    never overwrites them from ingestion.
@@ -35,12 +37,12 @@ checklist; the document wins on any conflict.
 6. **Derived stays derived.** Related-project matches and obsolete-project
    candidates are review flags; they never change lifecycle status
    automatically.
-7. **Provenance kept.** Synced and provider values keep their source and
-   timestamp, so a reader can tell a cached copy from an observation.
+7. **Provenance kept.** Ingested and cached values keep their source and
+   observation time, so a reader can tell a cached copy from an observation.
 
 ## Verification
 
-- A test that a machine-local field never appears in the sync payload.
+- A test that a machine-local field never appears in an export payload.
 - A test that a scan does not overwrite a portfolio-owned value.
 - A test that disagreeing sources produce `conflicting`, not one silent winner.
 

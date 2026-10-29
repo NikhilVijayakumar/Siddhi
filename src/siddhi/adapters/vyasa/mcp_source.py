@@ -25,7 +25,7 @@ CLIENT_INFO = {"name": "siddhi", "version": "0.1.0"}
 
 
 class VyasaMcpSource:
-    """Fetches one complete inventory, or fails with a category and no data."""
+    """One inventory read or one targeted project retrieval, or a named source failure."""
 
     def __init__(self, command: Sequence[str], timeout: float = 60.0) -> None:
         if not command:

@@ -140,13 +140,13 @@ def get_project_evidence(
         raise SourceNotConfigured()
     try:
         detail = source.get_project(project_id)
+        if not isinstance(detail, dict):
+            raise SourceError("unsupported_contract", "the source detail is not an object")
+        checkouts = detail.get("checkouts")
+        if not isinstance(checkouts, list):
+            raise SourceError("unsupported_contract", "the source detail has no checkouts")
     except SourceError as exc:
         raise SourceUnavailable(exc.category) from None
-    if not isinstance(detail, dict):
-        raise SourceError("unsupported_contract", "the source detail is not an object")
-    checkouts = detail.get("checkouts")
-    if checkouts is not None and not isinstance(checkouts, list):
-        raise SourceError("unsupported_contract", "the source detail has no checkouts")
     return {
         "project_id": project_id,
         "freshness": project.freshness,

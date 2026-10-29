@@ -95,6 +95,19 @@ def test_an_evidence_read_without_a_configured_source_reports_it(make_client):
     assert client.get(f"/projects/{PROJECT_ID}").status_code == 200
 
 
+def test_an_evidence_read_without_checkouts_is_a_source_failure(make_client):
+    source = FakeSource(inventory(project()), details=({"project_id": PROJECT_ID},))
+
+    with make_client(source) as client:
+        client.post(REFRESH)
+        response = client.get(f"/projects/{PROJECT_ID}/evidence")
+
+    assert response.status_code == 503, response.text
+    error = response.json()["error"]
+    assert (error["category"], error["code"]) == ("unavailable", "source_unavailable")
+    assert error["details"] == [{"run_id": None, "failure": "unsupported_contract"}]
+
+
 def test_an_unknown_stored_project_is_not_found(make_client):
     source = FakeSource(inventory(project()))
 

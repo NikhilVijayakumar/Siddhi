@@ -1,5 +1,7 @@
 """HTTP surface: request/response models, routes and error mapping."""
 
+import logging
+import time
 from datetime import date
 from uuid import uuid4
 
@@ -24,6 +26,10 @@ from siddhi.application.goals import (
     revise_goal,
 )
 from siddhi.domain.goal import InvalidGoal
+from siddhi.observability.health import health_report
+from siddhi.observability.logging import log_event
+
+logger = logging.getLogger("siddhi")
 
 router = APIRouter()
 
@@ -101,6 +107,12 @@ class RevisionPageResponse(BaseModel):
     items: list[RevisionResponse]
     next_cursor: str | None
     has_more: bool
+
+
+@router.get("/health")
+def get_health(request: Request) -> JSONResponse:
+    payload, status_code = health_report(request.app.state.db_path)
+    return JSONResponse(status_code=status_code, content=payload)
 
 
 @router.post("/goals", status_code=201, response_model=GoalResponse)
@@ -184,8 +196,18 @@ def add_correlation_id(app: FastAPI) -> None:
     @app.middleware("http")
     async def correlation_id(request: Request, call_next):
         request.state.correlation_id = uuid4().hex
+        started = time.perf_counter()
         response = await call_next(request)
         response.headers["X-Correlation-Id"] = request.state.correlation_id
+        log_event(
+            logger,
+            "http.request",
+            correlation_id=request.state.correlation_id,
+            method=request.method,
+            path=request.url.path,
+            status=response.status_code,
+            duration_ms=round((time.perf_counter() - started) * 1000, 1),
+        )
         return response
 
 

@@ -57,9 +57,10 @@ Covers: *Report and evolve the database schema version*, *Fail closed when a mig
       rollback leaves the prior version readable. A WAL store is refused rather than
       copied unsafely.
 - [x] 2.5 Tests pass, including the two failure scenarios.
-      `python -m pytest` → 7 passed. Non-zero process exit is not yet observable: no
-      process entrypoint exists until slice 6, which is where the typed errors map to
-      exit status and `503`.
+      `python -m pytest` → 7 passed. Non-zero process exit was not observable at this
+      point: no process entrypoint existed until slice 6, which is where the typed errors
+      map to exit status (closed in 7.4: `python -m siddhi` exits `1` on
+      `ConfigError`/`MigrationFailed`/`SchemaTooNew`).
 
 Traceability: `fun-01`/`tech-02` specs; `api-contract.md` §6;
 `knowledge/architecture/persistence.md`.
@@ -179,15 +180,35 @@ Traceability: FR-001; `data-model.md`.
 Covers: *Serve only on the local interface with safe diagnostics*, *Configure local
 operation without editing source*.
 
-- [ ] 7.1 Failing tests: startup binds `127.0.0.1` only; a non-loopback value without an
+- [x] 7.1 Failing tests: startup binds `127.0.0.1` only; a non-loopback value without an
       override fails before any socket opens; `/health` separates service, database and
       integrations; a database failure yields `503` with database `unavailable`; no error
       or health payload contains the database path or a credential-shaped value;
       configuration is read from environment and a machine-local file.
-- [ ] 7.2 Implement configuration loading and validation with messages naming the
+      `tests/bootstrap/test_config.py` (11 tests), `tests/api/test_health.py` (4) and
+      `tests/bootstrap/test_serve.py` (4), confirmed failing first (`ModuleNotFoundError`
+      for `siddhi.bootstrap.config`, then `404` for `/health`).
+- [x] 7.2 Implement configuration loading and validation with messages naming the
       setting only.
-- [ ] 7.3 Implement `/health` composition and structured logging with correlation ids.
-- [ ] 7.4 Tests pass.
+      `bootstrap/config.py`: built-in defaults → `~/.siddhi/settings.json` → `SIDDHI_*`
+      environment → explicit argument. `ConfigError` carries the setting name and a
+      message that states the allowed values but never echoes the submitted one; a
+      non-loopback `bind_host` is refused during `load_settings`, before any socket.
+- [x] 7.3 Implement `/health` composition and structured logging with correlation ids.
+      `observability/health.py` reads only reachability and the schema version, returning
+      `503`/`unavailable` without a traceback. `observability/logging.py` writes one JSON
+      line per event; the correlation middleware emits `http.request` with method, path,
+      status and duration, never a body. `serve()` in `bootstrap/app.py` and
+      `src/siddhi/__main__.py` give the process its entrypoint: failures to load
+      configuration or migrate exit `1` with the reason on stderr.
+- [x] 7.4 Tests pass.
+      `.venv/Scripts/python -m pytest` → 74 passed. Verified against a real process as
+      well: `python -m siddhi` with `SIDDHI_BIND_HOST=0.0.0.0` prints
+      `siddhi: SIDDHI_BIND_HOST: must be a loopback address (127.0.0.1 or localhost)` and
+      exits `1`; started normally on `127.0.0.1:8177` it answered `GET /health` with `200`
+      and the contract payload, and logged
+      `{"event":"http.request","correlation_id":…,"path":"/health","status":200,…}`
+      to stdout. This closes slice 1's unverified non-zero exit.
 
 Traceability: FR-046, FR-049, FR-050, NFR-022, NFR-026; `security-and-privacy.md`,
 `configuration-and-secrets.md`, `observability.md`.

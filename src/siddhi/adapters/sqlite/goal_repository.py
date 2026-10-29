@@ -6,7 +6,7 @@ from contextlib import closing
 from pathlib import Path
 
 from siddhi.adapters.sqlite.runner import connect
-from siddhi.domain.goal import Goal
+from siddhi.domain.goal import Goal, GoalRevision
 
 COLUMNS = (
     "id",
@@ -25,6 +25,16 @@ COLUMNS = (
     "created_at",
     "updated_at",
     "archived_at",
+)
+
+REVISION_COLUMNS = (
+    "goal_id",
+    "revision_number",
+    "changed_at",
+    "actor",
+    "reason",
+    "changed_fields",
+    "prior_state",
 )
 
 
@@ -84,6 +94,70 @@ class SqliteGoalRepository:
         with closing(connect(self._db_path)) as connection:
             return [_to_goal(row) for row in connection.execute(sql, parameters)]
 
+    def revise(
+        self,
+        goal: Goal,
+        changed_fields: list[str],
+        prior_state: dict[str, object],
+        reason: str | None,
+    ) -> bool:
+        """Guard on the previous revision so a lost update cannot commit."""
+        connection = connect(self._db_path)
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            updated = connection.execute(
+                f"UPDATE goals SET {', '.join(f'{column} = ?' for column in COLUMNS[1:])} "
+                "WHERE id = ? AND revision = ?",
+                tuple(getattr(goal, column) for column in COLUMNS[1:])
+                + (goal.id, goal.revision - 1),
+            ).rowcount
+            if updated == 0:
+                connection.rollback()
+                return False
+            connection.execute(
+                "INSERT INTO goal_revisions "
+                "(goal_id, revision_number, changed_at, actor, reason, "
+                " changed_fields, prior_state) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (
+                    goal.id,
+                    goal.revision,
+                    goal.updated_at,
+                    "owner",
+                    reason,
+                    json.dumps(changed_fields),
+                    json.dumps(prior_state),
+                ),
+            )
+            connection.commit()
+            return True
+        except BaseException:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
+
+    def revisions(
+        self, goal_id: str, limit: int, after_number: int | None
+    ) -> list[GoalRevision]:
+        sql = (
+            f"SELECT {', '.join(REVISION_COLUMNS)} FROM goal_revisions WHERE goal_id = ?"
+        )
+        parameters: list[object] = [goal_id]
+        if after_number is not None:
+            sql += " AND revision_number < ?"
+            parameters.append(after_number)
+        sql += " ORDER BY revision_number DESC LIMIT ?"
+        parameters.append(limit)
+        with closing(connect(self._db_path)) as connection:
+            return [_to_revision(row) for row in connection.execute(sql, parameters)]
+
 
 def _to_goal(row: sqlite3.Row | tuple) -> Goal:
     return Goal(**dict(zip(COLUMNS, row)))
+
+
+def _to_revision(row: sqlite3.Row | tuple) -> GoalRevision:
+    values = dict(zip(REVISION_COLUMNS, row))
+    values["changed_fields"] = json.loads(values["changed_fields"])
+    values["prior_state"] = json.loads(values["prior_state"])
+    return GoalRevision(**values)

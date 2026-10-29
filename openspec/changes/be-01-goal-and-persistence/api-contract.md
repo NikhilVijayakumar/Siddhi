@@ -195,6 +195,9 @@ appears in this payload or in any error message.
 `category` is the stable field clients branch on. `code` is a finer, additive
 identifier; new values may appear in a category without a breaking change.
 
+`details` is a list of structured objects; it is empty unless a category defines an
+entry. `conflict/revision_conflict` carries `{"current_revision": <integer>}`.
+
 ## 5. Data model (schema version 1)
 
 ```sql

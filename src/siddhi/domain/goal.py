@@ -56,6 +56,19 @@ class Goal:
         return [name for name in UNKNOWN_TRACKED if getattr(self, name) is None]
 
 
+@dataclass(frozen=True)
+class GoalRevision:
+    """One append-only record of a change; prior_state holds only the changed fields."""
+
+    goal_id: str
+    revision_number: int
+    changed_at: str
+    actor: str
+    changed_fields: list[str]
+    prior_state: dict[str, object]
+    reason: str | None = None
+
+
 def validate_new_goal(title: str, outcome_type: str, priority: str | None) -> None:
     """Raise InvalidGoal for the first value that breaks a rule."""
     if not 1 <= len(title.strip()) <= MAX_TITLE_LENGTH:

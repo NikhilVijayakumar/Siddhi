@@ -130,16 +130,29 @@ Traceability: FR-043; `api-contract.md` §3.2–3.3.
 Covers: *Revise a goal and retain its history* and the update side of *Reject invalid
 changes atomically*.
 
-- [ ] 5.1 Failing tests: a PATCH stores the new value and appends a revision containing
+- [x] 5.1 Failing tests: a PATCH stores the new value and appends a revision containing
       the prior value, changed field, time and reason; `revision` increments once;
       setting a field to `null` records a change back to unknown; a stale
       `expected_revision` returns `409` with the current revision and changes nothing;
       a server-owned field (`id`, `status`, `revision`, timestamps) is rejected; a
       rejected update creates no revision.
-- [ ] 5.2 Implement `PATCH /goals/{goal_id}` with the revision insert inside the same
+      `tests/api/test_revise_goal.py` (18 tests, confirmed failing first with `405`) plus
+      `tests/adapters/sqlite/test_goal_repository.py` for the lost-update guard. Also
+      covers: absent fields untouched, a matching `expected_revision`, a no-op update
+      creating no revision, and an over-long `revision_reason`.
+- [x] 5.2 Implement `PATCH /goals/{goal_id}` with the revision insert inside the same
       transaction as the row update.
-- [ ] 5.3 Implement `GET /goals/{goal_id}/revisions` with the same cursor mechanics.
-- [ ] 5.4 Tests pass, including the conflict case.
+      `revise_goal` compares the proposed values with the current row, so only fields
+      that actually change are recorded; `repository.revise` updates `WHERE id = ? AND
+      revision = ?` and rolls back when the row moved on, and the application re-reads
+      the current revision for the `409`.
+- [x] 5.3 Implement `GET /goals/{goal_id}/revisions` with the same cursor mechanics.
+      Keyset on `revision_number DESC` through a second cursor codec; an unknown goal is
+      `404` before any page is read.
+- [x] 5.4 Tests pass, including the conflict case.
+      `.venv/Scripts/python -m pytest` → 48 passed. The `409` body carries
+      `details: [{"current_revision": n}]`, a shape `api-contract.md` §4 did not name;
+      recorded there and in the verification notes rather than invented silently.
 
 Traceability: FR-006, NFR-007, NFR-014, NFR-016; `data-model.md`, `persistence.md`.
 

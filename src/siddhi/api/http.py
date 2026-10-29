@@ -6,17 +6,21 @@ from uuid import uuid4
 from fastapi import APIRouter, FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from siddhi.application.goals import (
     DEFAULT_LIMIT,
     MAX_LIMIT,
+    GoalConflict,
     GoalNotFound,
     GoalPage,
     NewGoal,
+    RevisionPage,
     create_goal,
     get_goal,
     list_goals,
+    list_revisions,
+    revise_goal,
 )
 from siddhi.domain.goal import InvalidGoal
 
@@ -66,6 +70,38 @@ class GoalPageResponse(BaseModel):
     has_more: bool
 
 
+class PatchGoalRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: str | None = None
+    outcome_type: str | None = None
+    description: str | None = None
+    rationale: str | None = None
+    priority: str | None = None
+    target_date: date | None = None
+    success_criteria: str | None = None
+    constraints: str | None = None
+    assumptions: str | None = None
+    risks: str | None = None
+    revision_reason: str | None = Field(None, max_length=500)
+    expected_revision: int | None = None
+
+
+class RevisionResponse(BaseModel):
+    revision_number: int
+    changed_at: str
+    actor: str
+    reason: str | None
+    changed_fields: list[str]
+    prior_state: dict[str, object]
+
+
+class RevisionPageResponse(BaseModel):
+    items: list[RevisionResponse]
+    next_cursor: str | None
+    has_more: bool
+
+
 @router.post("/goals", status_code=201, response_model=GoalResponse)
 def post_goal(body: CreateGoalRequest, request: Request) -> GoalResponse:
     goal = create_goal(request.app.state.goals, NewGoal(**body.model_dump()))
@@ -88,9 +124,51 @@ def get_one_goal(goal_id: str, request: Request) -> GoalResponse:
     return GoalResponse.model_validate(get_goal(request.app.state.goals, goal_id))
 
 
+@router.patch("/goals/{goal_id}", response_model=GoalResponse)
+def patch_goal(goal_id: str, body: PatchGoalRequest, request: Request) -> GoalResponse:
+    supplied = body.model_dump(exclude_unset=True)
+    reason = supplied.pop("revision_reason", None)
+    expected_revision = supplied.pop("expected_revision", None)
+    if supplied.get("target_date") is not None:
+        supplied["target_date"] = supplied["target_date"].isoformat()
+    revised = revise_goal(
+        request.app.state.goals, goal_id, supplied, reason, expected_revision
+    )
+    return GoalResponse.model_validate(revised)
+
+
+@router.get("/goals/{goal_id}/revisions", response_model=RevisionPageResponse)
+def get_revisions(
+    goal_id: str,
+    request: Request,
+    limit: int = Query(DEFAULT_LIMIT, ge=1, le=MAX_LIMIT),
+    cursor: str | None = None,
+) -> RevisionPageResponse:
+    page = list_revisions(request.app.state.goals, goal_id, limit, cursor)
+    return _revision_page_response(page)
+
+
 def _page_response(page: GoalPage) -> GoalPageResponse:
     return GoalPageResponse(
         items=[GoalResponse.model_validate(goal) for goal in page.items],
+        next_cursor=page.next_cursor,
+        has_more=page.has_more,
+    )
+
+
+def _revision_page_response(page: RevisionPage) -> RevisionPageResponse:
+    return RevisionPageResponse(
+        items=[
+            RevisionResponse(
+                revision_number=revision.revision_number,
+                changed_at=revision.changed_at,
+                actor=revision.actor,
+                reason=revision.reason,
+                changed_fields=revision.changed_fields,
+                prior_state=revision.prior_state,
+            )
+            for revision in page.items
+        ],
         next_cursor=page.next_cursor,
         has_more=page.has_more,
     )
@@ -111,6 +189,7 @@ def error_body(
     code: str,
     message: str,
     field: str | None = None,
+    details: list[dict[str, object]] | None = None,
 ) -> dict:
     """Error envelope from api-contract 4; never includes a submitted value."""
     return {
@@ -120,7 +199,7 @@ def error_body(
             "message": message,
             "field": field,
             "correlation_id": request.state.correlation_id,
-            "details": [],
+            "details": details or [],
         }
     }
 
@@ -148,5 +227,18 @@ def install_error_handlers(app: FastAPI) -> None:
             status_code=404,
             content=error_body(
                 request, "not_found", "goal_not_found", "no goal uses that identifier"
+            ),
+        )
+
+    @app.exception_handler(GoalConflict)
+    async def goal_conflict(request: Request, exc: GoalConflict) -> JSONResponse:
+        return JSONResponse(
+            status_code=409,
+            content=error_body(
+                request,
+                "conflict",
+                "revision_conflict",
+                "expected_revision does not match the current revision",
+                details=[{"current_revision": exc.current_revision}],
             ),
         )

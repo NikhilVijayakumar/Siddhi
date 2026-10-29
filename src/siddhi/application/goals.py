@@ -2,12 +2,12 @@
 
 import base64
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime
 from typing import Protocol
 from uuid import uuid4
 
-from siddhi.domain.goal import Goal, InvalidGoal, validate_new_goal
+from siddhi.domain.goal import Goal, GoalRevision, InvalidGoal, validate_new_goal
 
 # Every field the owner can supply at creation, in contract order.
 SUPPLIABLE_FIELDS = (
@@ -37,14 +37,48 @@ class GoalRepository(Protocol):
         self, status: str, limit: int, after: tuple[str, str] | None
     ) -> list[Goal]: ...
 
+    def revise(
+        self,
+        goal: Goal,
+        changed_fields: list[str],
+        prior_state: dict[str, object],
+        reason: str | None,
+    ) -> bool:
+        """Store the revision and the new row atomically; False if the row moved on."""
+        ...
+
+    def revisions(
+        self, goal_id: str, limit: int, after_number: int | None
+    ) -> list[GoalRevision]: ...
+
 
 class GoalNotFound(Exception):
     """No goal uses the requested identifier."""
 
 
+class GoalConflict(Exception):
+    """The goal changed since the caller last read it."""
+
+    def __init__(self, current_revision: int) -> None:
+        super().__init__(
+            f"expected_revision does not match the current revision {current_revision}"
+        )
+        self.current_revision = current_revision
+
+
 @dataclass(frozen=True)
 class GoalPage:
     items: list[Goal]
+    next_cursor: str | None
+
+    @property
+    def has_more(self) -> bool:
+        return self.next_cursor is not None
+
+
+@dataclass(frozen=True)
+class RevisionPage:
+    items: list[GoalRevision]
     next_cursor: str | None
 
     @property
@@ -127,14 +161,98 @@ def list_goals(
 
 def encode_cursor(goal: Goal) -> str:
     """The last row's sort key, opaque to clients (api-contract 3.2)."""
-    key = json.dumps({"created_at": goal.created_at, "id": goal.id}, separators=(",", ":"))
-    return base64.urlsafe_b64encode(key.encode()).decode().rstrip("=")
+    return _encode({"created_at": goal.created_at, "id": goal.id})
 
 
 def decode_cursor(cursor: str) -> tuple[str, str]:
+    key = _decode(cursor)
+    try:
+        return str(key["created_at"]), str(key["id"])
+    except KeyError:
+        raise InvalidGoal("cursor", "cursor is not valid") from None
+
+
+def encode_revision_cursor(revision_number: int) -> str:
+    return _encode({"revision_number": revision_number})
+
+
+def decode_revision_cursor(cursor: str) -> int:
+    key = _decode(cursor)
+    try:
+        return int(key["revision_number"])
+    except (KeyError, TypeError, ValueError):
+        raise InvalidGoal("cursor", "cursor is not valid") from None
+
+
+def revise_goal(
+    repository: GoalRepository,
+    goal_id: str,
+    changes: dict[str, object],
+    reason: str | None = None,
+    expected_revision: int | None = None,
+) -> Goal:
+    """Apply the supplied fields, appending a revision only for values that changed."""
+    goal = get_goal(repository, goal_id)
+    if expected_revision is not None and expected_revision != goal.revision:
+        raise GoalConflict(goal.revision)
+    supplied = {name: value for name, value in changes.items() if name in SUPPLIABLE_FIELDS}
+    validate_new_goal(
+        supplied.get("title", goal.title),  # type: ignore[arg-type]
+        supplied.get("outcome_type", goal.outcome_type),  # type: ignore[arg-type]
+        supplied.get("priority", goal.priority),  # type: ignore[arg-type]
+    )
+    changed = [
+        name
+        for name in SUPPLIABLE_FIELDS
+        if name in supplied and supplied[name] != getattr(goal, name)
+    ]
+    if not changed:
+        return goal
+    prior_state = {name: getattr(goal, name) for name in changed}
+    revised = replace(
+        goal,
+        revision=goal.revision + 1,
+        updated_at=utc_now(),
+        **{name: supplied[name] for name in changed},
+    )
+    if not repository.revise(revised, changed, prior_state, reason):
+        raise GoalConflict(get_goal(repository, goal_id).revision)
+    return revised
+
+
+def list_revisions(
+    repository: GoalRepository,
+    goal_id: str,
+    limit: int = DEFAULT_LIMIT,
+    cursor: str | None = None,
+) -> RevisionPage:
+    """One bounded page of history, newest revision first."""
+    if not 1 <= limit <= MAX_LIMIT:
+        raise InvalidGoal("limit", f"limit must be between 1 and {MAX_LIMIT}")
+    get_goal(repository, goal_id)
+    after = decode_revision_cursor(cursor) if cursor is not None else None
+    rows = repository.revisions(goal_id, limit + 1, after)
+    items = rows[:limit]
+    return RevisionPage(
+        items=items,
+        next_cursor=(
+            encode_revision_cursor(items[-1].revision_number) if len(rows) > limit else None
+        ),
+    )
+
+
+def _encode(payload: dict[str, object]) -> str:
+    return base64.urlsafe_b64encode(
+        json.dumps(payload, separators=(",", ":")).encode()
+    ).decode().rstrip("=")
+
+
+def _decode(cursor: str) -> dict[str, object]:
     try:
         padded = cursor + "=" * (-len(cursor) % 4)
-        key = json.loads(base64.urlsafe_b64decode(padded))
-        return str(key["created_at"]), str(key["id"])
-    except (ValueError, KeyError, TypeError):
+        payload = json.loads(base64.urlsafe_b64decode(padded))
+    except ValueError:
         raise InvalidGoal("cursor", "cursor is not valid") from None
+    if not isinstance(payload, dict):
+        raise InvalidGoal("cursor", "cursor is not valid")
+    return payload

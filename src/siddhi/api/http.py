@@ -1,6 +1,7 @@
 """HTTP surface: request/response models, routes and error mapping."""
 
 import logging
+import sqlite3
 import time
 from datetime import date
 from uuid import uuid4
@@ -268,5 +269,24 @@ def install_error_handlers(app: FastAPI) -> None:
                 "revision_conflict",
                 "expected_revision does not match the current revision",
                 details=[{"current_revision": exc.current_revision}],
+            ),
+        )
+
+    @app.exception_handler(sqlite3.Error)
+    async def database_unavailable(request: Request, exc: sqlite3.Error) -> JSONResponse:
+        # sqlite3 messages carry the database path, so only the exception type is logged.
+        log_event(
+            logger,
+            "database.unavailable",
+            correlation_id=request.state.correlation_id,
+            error=type(exc).__name__,
+        )
+        return JSONResponse(
+            status_code=503,
+            content=error_body(
+                request,
+                "unavailable",
+                "database_unavailable",
+                "the local database is unavailable",
             ),
         )

@@ -215,28 +215,87 @@ Traceability: FR-046, FR-049, FR-050, NFR-022, NFR-026; `security-and-privacy.md
 
 ## Slice 7: end-to-end verification and reporting
 
-- [ ] 8.1 End-to-end test over HTTP against a temporary database: create → retrieve →
+- [x] 8.1 End-to-end test over HTTP against a temporary database: create → retrieve →
       revise → list revisions → archive → confirm listing and history.
-- [ ] 8.2 Failure-case sweep: invalid input, stale revision, unknown id, unavailable
+      `tests/test_end_to_end.py::test_a_goal_runs_its_whole_lifecycle_on_one_database`
+      drives all five routes through one `TestClient` on a temporary database file,
+      including `GET /health` at the end.
+- [x] 8.2 Failure-case sweep: invalid input, stale revision, unknown id, unavailable
       database, interrupted migration — each asserted to leave state unchanged or
       reported, not silently corrected.
-- [ ] 8.3 Run `openspec validate be-01-goal-and-persistence` and
+      `test_rejected_requests_change_nothing` runs eight rejected requests (missing title,
+      blank title, bad priority, stale revision, three unknown-identifier cases, unknown
+      route) and compares full `goals` and `goal_revisions` dumps before and after.
+      `test_an_unusable_database_is_reported_and_not_repaired` replaces the database file
+      with a directory: reads, writes and `/health` all answer `503 unavailable` with no
+      path in the body, and the path is not recreated. The interrupted-migration case is
+      `test_migrations.py::test_failed_migration_leaves_prior_version_and_rows_readable`.
+      Closing a contract gap found here: `sqlite3.Error` now maps to
+      `503 unavailable/database_unavailable` (contract §4 already listed the category;
+      nothing else was invented) and only the exception type is logged, because SQLite
+      messages embed the database path.
+- [x] 8.3 Run `openspec validate be-01-goal-and-persistence` and
       `openspec show be-01-goal-and-persistence --json --deltas-only`.
-- [ ] 8.4 Fill the verification record below with actual outcomes; report structural
+      `Change 'be-01-goal-and-persistence' is valid`; the delta view parses and reports
+      `deltaCount: 10` (6 `fun-01-portfolio-goals`, 4 `tech-02-local-database-baseline`).
+- [x] 8.4 Fill the verification record below with actual outcomes; report structural
       checks separately from executed tests, and leave unavailable checks marked as such.
+      Filled below; known gaps are listed rather than smoothed over.
 
 Traceability: `knowledge/practices/testing-and-validation.md`;
 `engineering-quality` grill Q1, Q3.
 
 ## Verification evidence
 
-| Check | Command / artifact | Result | Notes |
-|---|---|---|---|
-| Goal specification scenarios | executed pytest suite | Not run | |
-| Migration and rollback checks | executed pytest suite | Not run | |
-| Loopback and diagnostics checks | executed pytest suite | Not run | |
-| `openspec validate` | `openspec validate be-01-goal-and-persistence` | Not run | Structural |
-| Deltas | `openspec show be-01-goal-and-persistence --json --deltas-only` | Not run | Structural |
+Executed suite: `.venv/Scripts/python -m pytest -q` → **77 passed, 1 warning** (the warning
+is Starlette's `httpx` deprecation notice, unrelated to Siddhi code).
+
+### Executed checks, by requirement
+
+| Requirement (delta) | Evidence | Result |
+|---|---|---|
+| Capture a goal before any project exists | `tests/api/test_create_goal.py` (9), lifecycle test | pass |
+| Retrieve and list goals | `tests/api/test_list_goals.py` (12): bounded page, cursor walk, status filters, tie-break, invalid cursor | pass |
+| Revise a goal and retain its history | `tests/api/test_revise_goal.py` (18) + `tests/adapters/sqlite/test_goal_repository.py` (1, lost-update guard) | pass |
+| Archive a goal without deleting it | `tests/api/test_archive_goal.py` (5) | pass |
+| Absent information stays explicitly unknown | `unknown_fields` asserted on create and after an explicit `null`; `prior_state` rows read back from SQLite | pass |
+| Reject invalid changes atomically | `tests/test_end_to_end.py::test_rejected_requests_change_nothing` (8 cases, state compared before/after) | pass |
+| Report and evolve the database schema version | `tests/adapters/sqlite/test_migrations.py` (6) | pass |
+| Fail closed when a migration fails | `test_failed_migration_leaves_prior_version_and_rows_readable`; `tests/bootstrap/test_serve.py::test_main_reports_a_failed_migration` (exit `1`) | pass |
+| Serve only on the local interface with safe diagnostics | `tests/bootstrap/test_config.py` (11), `tests/api/test_health.py` (4), `tests/bootstrap/test_serve.py` (4); manual process smoke test | pass |
+| Configure local operation without editing source | `tests/bootstrap/test_config.py`: defaults, file, environment precedence, refusals | pass |
+
+Suite sizes: `tests/adapters/sqlite` 8, `tests/api` 49, `tests/bootstrap` 17,
+`tests/test_end_to_end.py` 3.
+
+Manual process check (not part of the suite): `python -m siddhi` with
+`SIDDHI_BIND_HOST=0.0.0.0` printed
+`siddhi: SIDDHI_BIND_HOST: must be a loopback address (127.0.0.1 or localhost)` and exited
+`1`; with a loopback host on port 8177 it served `GET /health` → `200` with the contract
+payload and wrote one JSON request line to stdout.
+
+### Structural checks
+
+| Check | Command | Result |
+|---|---|---|
+| Change validity | `openspec validate be-01-goal-and-persistence` | `Change 'be-01-goal-and-persistence' is valid` |
+| Delta parse and count | `openspec show be-01-goal-and-persistence --json --deltas-only` | 10 deltas: 6 `fun-01-portfolio-goals`, 4 `tech-02-local-database-baseline` |
+
+### Not verified, or verified only in part
+
+- **Gherkin scenarios are documentation, not executable.** No Gherkin runner or step
+  definitions exist, so each scenario is represented by a pytest assertion rather than
+  executed as Gherkin.
+- **Unknown-path 404 shape.** `GET /agenda` returns `404` with FastAPI's default
+  `{"detail": …}` body; only an unknown *goal* identifier is mapped into the contract
+  envelope. Deferred rather than silently claimed as conformant.
+- **Coverage is not measured.** No coverage tool or threshold is configured, so no
+  percentage is reported.
+- **Concurrency** is verified only through the repository's guarded update, not with
+  parallel processes or a second connection racing a write.
+- **Performance and load** are unmeasured; this is a single-user local store.
+- **Backups** are copied before a migration but never pruned, and there is no index for
+  the `(created_at DESC, id ASC)` listing.
 
 ## Out of scope (deliberately not started)
 

@@ -172,5 +172,8 @@ Vyasa failure*.
       exercised by a test; `last_observed_at` is the run's `started_at`, and a project
       removed and later re-added gets a new `first_observed_at`. Source-supplied field
       lengths are bounded only by the 1 MB message cap.
-- [ ] 6.6 Merge `--no-ff` into `develop`, push, archive the change, and replace any
+- [x] 6.6 Merge `--no-ff` into `develop`, push, archive the change, and replace any
       placeholder `## Purpose` in the synced specs.
+      Evidence: merged as `3cbf945`, pushed; archived as
+      `2026-10-29-be-02-vyasa-project-inventory`; the `fun-02-project-inventory` and
+      `tech-03-vyasa-mcp-adapter` purposes were written after archiving.

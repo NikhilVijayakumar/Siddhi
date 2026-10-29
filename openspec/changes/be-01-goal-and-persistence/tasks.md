@@ -1,7 +1,7 @@
 # Implementation Tasks: Goal and local database baseline
 
 - **OpenSpec Change ID:** `be-01-goal-and-persistence`
-- **Status:** Not Started
+- **Status:** In Progress (prerequisite complete)
 - **Related artifacts:** `proposal.md`, `specs/`, `design.md`, `api-contract.md`, `adr.md`
 
 ## Planning rules applied here
@@ -16,13 +16,17 @@ reported separately from executed tests.
 
 Enabling work only, no product behavior.
 
-- [ ] 1.1 Add `fastapi`, `uvicorn`, `pydantic` to `[project].dependencies`; keep `pytest`
+- [x] 1.1 Add `fastapi`, `uvicorn`, `pydantic` to `[project].dependencies`; keep `pytest`
       in `dev`. Record the version constraints added.
-- [ ] 1.2 Create the package layout from `design.md` §3: `api/`, `application/`,
+      Constraints: `fastapi>=0.121,<1`, `pydantic>=2.13,<3`, `uvicorn>=0.52,<1`.
+- [x] 1.2 Create the package layout from `design.md` §3: `api/`, `application/`,
       `domain/`, `adapters/sqlite/`, `adapters/sqlite/migrations/`, `bootstrap/`,
       `observability/`.
-- [ ] 1.3 Add a test fixture that creates and removes a temporary SQLite file per test.
-- [ ] 1.4 Confirm `python -m pytest` runs and reports zero tests without error.
+- [x] 1.3 Add a test fixture that creates and removes a temporary SQLite file per test.
+      `tests/conftest.py::db_path` returns a path under `tmp_path`; the file is not
+      created, so the fresh-database migration case can start from nothing.
+- [x] 1.4 Confirm `python -m pytest` runs and reports zero tests without error.
+      Collected 0 items, no collection errors; exit code 5 is pytest's "no tests ran".
 
 Traceability: `design.md` §3; `proposal.md` constraints (NFR-033 controlled dependencies).
 

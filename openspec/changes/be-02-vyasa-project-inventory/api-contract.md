@@ -111,7 +111,8 @@ The `integrations` check is replaced:
 
 `status` is `configured` when an executable is configured, `not_configured`
 otherwise; `last_run` is `null` until one refresh exists. A failed last run is
-reported here as `outcome: "failed"`. Integration state never decides service
+reported here as `outcome: "failed"`. When the store itself cannot be read, this check
+reports `status: "unavailable"` instead. Integration state never decides service
 usability and no setting value, path, or source message appears in this payload.
 
 ## 4. Error model

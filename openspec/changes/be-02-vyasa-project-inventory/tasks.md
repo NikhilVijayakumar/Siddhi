@@ -110,12 +110,17 @@ contract and fail explicitly*, *Bound paging and reject a stalled cursor*,
 Covers: `api-contract.md` §3.4 and the failure half of *Local portfolio work survives
 Vyasa failure*.
 
-- [ ] 5.1 Failing tests: not configured; configured with no run; last run completed;
+- [x] 5.1 Failing tests: not configured; configured with no run; last run completed;
       last run failed still reports service `ok`; no path or setting value in the
       payload.
-- [ ] 5.2 Implement the `integrations` block from the latest run and pass configuration
+      Red evidence: 4 of the 5 new health tests failed (integrations was the old
+      `not_configured` constant).
+- [x] 5.2 Implement the `integrations` block from the latest run and pass configuration
       state into health.
-- [ ] 5.3 Tests pass; record the evidence.
+      Note: the last run is read by insertion order (`rowid`), because two refreshes in
+      the same second share a `started_at`.
+- [x] 5.3 Tests pass; record the evidence.
+      Evidence: `tests/api/test_health.py` → 8 passed; full suite → 110 passed, 1 warning.
 
 ## Slice 5: Verification and closeout
 

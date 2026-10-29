@@ -170,7 +170,7 @@ class SqliteProjectRepository:
         with closing(connect(self._db_path)) as connection:
             row = connection.execute(
                 "SELECT id, outcome, finished_at, freshness FROM ingestion_runs"
-                " ORDER BY started_at DESC, id DESC LIMIT 1"
+                " ORDER BY rowid DESC LIMIT 1"
             ).fetchone()
         if row is None:
             return None

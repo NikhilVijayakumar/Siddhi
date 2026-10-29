@@ -143,7 +143,9 @@ class ProjectPageResponse(BaseModel):
 
 @router.get("/health")
 def get_health(request: Request) -> JSONResponse:
-    payload, status_code = health_report(request.app.state.db_path)
+    payload, status_code = health_report(
+        request.app.state.db_path, request.app.state.project_source is not None
+    )
     return JSONResponse(status_code=status_code, content=payload)
 
 

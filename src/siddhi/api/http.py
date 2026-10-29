@@ -123,6 +123,24 @@ class RefreshReportResponse(BaseModel):
     counts: dict[str, int]
 
 
+class ProjectResponse(BaseModel):
+    project_id: str
+    display_name: str
+    state: str
+    identity_status: str
+    providers: list[str]
+    languages: list[str]
+    first_observed_at: str
+    last_observed_at: str
+    freshness: str | None
+
+
+class ProjectPageResponse(BaseModel):
+    items: list[ProjectResponse]
+    next_cursor: str | None
+    has_more: bool
+
+
 @router.get("/health")
 def get_health(request: Request) -> JSONResponse:
     payload, status_code = health_report(request.app.state.db_path)
@@ -195,6 +213,40 @@ def post_refresh(request: Request) -> RefreshReportResponse:
         freshness=report.freshness,
         projects_total=report.projects_total,
         counts=report.counts,
+    )
+
+
+@router.get("/projects", response_model=ProjectPageResponse)
+def get_projects(
+    request: Request,
+    state: str = "all",
+    limit: int = Query(inventory.DEFAULT_LIMIT, ge=1, le=inventory.MAX_LIMIT),
+    cursor: str | None = None,
+) -> ProjectPageResponse:
+    page = inventory.list_projects(request.app.state.projects, state, limit, cursor)
+    return ProjectPageResponse(
+        items=[_project_response(project) for project in page.items],
+        next_cursor=page.next_cursor,
+        has_more=page.has_more,
+    )
+
+
+@router.get("/projects/{project_id}", response_model=ProjectResponse)
+def get_project(request: Request, project_id: str) -> ProjectResponse:
+    return _project_response(inventory.get_project(request.app.state.projects, project_id))
+
+
+def _project_response(project) -> ProjectResponse:
+    return ProjectResponse(
+        project_id=project.project_id,
+        display_name=project.display_name,
+        state=project.state,
+        identity_status=project.identity_status,
+        providers=list(project.providers),
+        languages=list(project.languages),
+        first_observed_at=project.first_observed_at,
+        last_observed_at=project.last_observed_at,
+        freshness=project.freshness,
     )
 
 
@@ -300,6 +352,28 @@ def install_error_handlers(app: FastAPI) -> None:
                 "revision_conflict",
                 "expected_revision does not match the current revision",
                 details=[{"current_revision": exc.current_revision}],
+            ),
+        )
+
+    @app.exception_handler(inventory.ProjectNotFound)
+    async def project_not_found(
+        request: Request, exc: inventory.ProjectNotFound
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=404,
+            content=error_body(
+                request, "not_found", "project_not_found", "no project uses that identifier"
+            ),
+        )
+
+    @app.exception_handler(inventory.InvalidProject)
+    async def invalid_project(
+        request: Request, exc: inventory.InvalidProject
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=422,
+            content=error_body(
+                request, "validation", "invalid_field", exc.message, exc.field
             ),
         )
 

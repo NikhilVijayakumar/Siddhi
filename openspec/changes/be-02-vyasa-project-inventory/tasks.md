@@ -64,16 +64,20 @@ refresh fails*, *Local portfolio work survives Vyasa failure* (refresh half),
 Covers: *List and retrieve observed projects*, *Distinguish source state, freshness and
 observation time*, *Remove only from a complete observation*, `api-contract.md` §3.2–3.3.
 
-- [ ] 3.1 Failing contract tests: list ordering and cursor page boundary; state filter;
+- [x] 3.1 Failing contract tests: list ordering and cursor page boundary; state filter;
       empty inventory is an empty list; unknown identifier is `404 project_not_found`;
       project payload carries state, identity status, providers, languages, first/last
       observation time and the observing run's freshness; `missing` is returned as a
       state without deletion; a project absent from a completed read disappears while a
       failed read removes nothing.
-- [ ] 3.2 Implement repository reads (keyset page, single project) and application
+      Red evidence: `tests/api/test_list_projects.py` → 10 failed (all endpoints absent).
+- [x] 3.2 Implement repository reads (keyset page, single project) and application
       listing/retrieval with cursor validation.
-- [ ] 3.3 Wire `GET /projects` and `GET /projects/{project_id}`.
-- [ ] 3.4 Tests pass; record the evidence.
+- [x] 3.3 Wire `GET /projects` and `GET /projects/{project_id}`.
+- [x] 3.4 Tests pass; record the evidence.
+      Evidence: `test_list_projects.py` → 10 passed; full suite → 95 passed, 1 warning.
+      Rejected query values report `validation`/`invalid_field` with `state`, `cursor`
+      and `limit`; the failed-read case is covered in `test_refresh_inventory.py`.
 
 ## Slice 3: Read-only Vyasa MCP adapter with explicit failures
 

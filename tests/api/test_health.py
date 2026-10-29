@@ -11,9 +11,9 @@ def test_health_reports_service_database_and_integrations(client):
     assert response.status_code == 200
     health = response.json()
     assert health["status"] == "ok"
-    assert health["schema_version"] == 1
+    assert health["schema_version"] == 2
     assert health["checks"]["service"] == {"status": "ok"}
-    assert health["checks"]["database"] == {"status": "ok", "schema_version": 1}
+    assert health["checks"]["database"] == {"status": "ok", "schema_version": 2}
     assert health["checks"]["integrations"]["status"] == "not_configured"
 
 

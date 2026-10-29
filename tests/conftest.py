@@ -19,3 +19,13 @@ def client(db_path: Path):
     """HTTP client over a freshly migrated database."""
     with TestClient(create_app(db_path)) as test_client:
         yield test_client
+
+
+@pytest.fixture
+def make_client(db_path: Path):
+    """Build clients over the same database, each with its own inventory source."""
+
+    def build(project_source=None):
+        return TestClient(create_app(db_path, project_source=project_source))
+
+    return build

@@ -1,7 +1,7 @@
 # Implementation Tasks: Vyasa project inventory
 
 - **OpenSpec Change ID:** `be-02-vyasa-project-inventory`
-- **Status:** Artifacts complete; implementation not started
+- **Status:** In Progress (prerequisites and slice 1 complete)
 - **Related artifacts:** `proposal.md`, `specs/`, `api-contract.md`, `design.md`, `adr.md`
 
 ## Planning rules applied here
@@ -16,14 +16,19 @@ reported separately from executed tests.
 
 Enabling work only, no user-observable behavior.
 
-- [ ] 1.1 Update the existing migration assertions from schema version 1 to 2
+- [x] 1.1 Update the existing migration assertions from schema version 1 to 2
       (`tests/adapters/sqlite/test_migrations.py`, `tests/api/test_health.py`), confirm
       they fail, then add `002_project_inventory.sql` from `api-contract.md` §5.
-      Red evidence, then green evidence, recorded in this file.
-- [ ] 1.2 Add the `SIDDHI_VYASA_MCP_COMMAND` setting with validation and a test; unset
+      Red evidence: 3 failed (`schema_version == 2`, ledger `[1, 2]`, `Settings` has no
+      `vyasa_mcp_command`). Green: `.venv/Scripts/python -m pytest -q` → 78 passed.
+- [x] 1.2 Add the `SIDDHI_VYASA_MCP_COMMAND` setting with validation and a test; unset
       or blank means no source. A configured path is not required to exist at startup.
-- [ ] 1.3 Add a test-double inventory port and a shared `TestClient` factory that
+      Evidence: `test_vyasa_command_is_optional_and_blank_is_refused` (unset → `None`,
+      set value kept verbatim, blank → `ConfigError` naming the setting).
+- [x] 1.3 Add a test-double inventory port and a shared `TestClient` factory that
       accepts it (`tests/conftest.py`), without changing existing goal tests.
+      Evidence: `tests/fakes.py` (`FakeSource`, `project()`, `inventory()`) and
+      `tests/conftest.py::make_client`; the `client` fixture is unchanged.
 
 ## Slice 1: Explicit refresh publishes a project inventory
 
@@ -31,21 +36,28 @@ Covers: *Refresh Vyasa inventory explicitly*, *Preserve prior valid inventory wh
 refresh fails*, *Local portfolio work survives Vyasa failure* (refresh half),
 `api-contract.md` §3.1, §5.
 
-- [ ] 2.1 Failing contract tests for the refresh: completed refresh stores every
+- [x] 2.1 Failing contract tests for the refresh: completed refresh stores every
       project and reports counts; an identical repeat is all-unchanged and keeps
       `first_observed_at`; changed fields count as updated; a source failure returns
       `503 source_unavailable` with run and failure category while stored projects and
       goals stay unchanged; no configured source returns `503 source_not_configured`
       with no run row; a failure after the first page publishes nothing.
-- [ ] 2.2 Implement `domain/project.py`: observation vocabulary, required-field
+      Red evidence: `tests/api/test_refresh_inventory.py` failed collection with
+      `ModuleNotFoundError: siddhi.domain.project`, then 4 of 7 failed with
+      `database_unavailable` (run row inserted after the rows that reference it).
+- [x] 2.2 Implement `domain/project.py`: observation vocabulary, required-field
       validation, allowed states, source failure category.
-- [ ] 2.3 Implement `application/inventory.py`: inventory and repository ports,
+- [x] 2.3 Implement `application/inventory.py`: inventory and repository ports,
       `refresh_inventory`, failure-then-report behavior, run identifiers.
-- [ ] 2.4 Implement `adapters/sqlite/project_repository.py`: one transaction inserting
+- [x] 2.4 Implement `adapters/sqlite/project_repository.py`: one transaction inserting
       the run and applying added/updated/removed/unchanged rows.
-- [ ] 2.5 Wire `POST /ingestion/vyasa/refresh` in `api/http.py` and inject the source in
+- [x] 2.5 Wire `POST /ingestion/vyasa/refresh` in `api/http.py` and inject the source in
       `bootstrap/app.py`; map `unavailable` errors without leaking source text.
-- [ ] 2.6 Tests pass at the contract layer; record the evidence.
+- [x] 2.6 Tests pass at the contract layer; record the evidence.
+      Evidence: `.venv/Scripts/python -m pytest -q` → 85 passed, 1 warning
+      (Starlette `httpx` deprecation). `test_refresh_inventory.py` covers 7 cases
+      including the duplicate-identifier rejection and a fake `SourceError` whose
+      message contains a path (`"secret" not in failed.text`).
 
 ## Slice 2: List and retrieve the observed projects
 

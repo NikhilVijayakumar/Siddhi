@@ -11,6 +11,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
+from siddhi.application import inventory
 from siddhi.application.goals import (
     DEFAULT_LIMIT,
     MAX_LIMIT,
@@ -110,6 +111,18 @@ class RevisionPageResponse(BaseModel):
     has_more: bool
 
 
+class RefreshReportResponse(BaseModel):
+    run_id: str
+    source: str
+    started_at: str
+    finished_at: str
+    outcome: str
+    index_version: str | None
+    freshness: str | None
+    projects_total: int
+    counts: dict[str, int]
+
+
 @router.get("/health")
 def get_health(request: Request) -> JSONResponse:
     payload, status_code = health_report(request.app.state.db_path)
@@ -165,6 +178,24 @@ def get_revisions(
 ) -> RevisionPageResponse:
     page = list_revisions(request.app.state.goals, goal_id, limit, cursor)
     return _revision_page_response(page)
+
+
+@router.post("/ingestion/vyasa/refresh", response_model=RefreshReportResponse)
+def post_refresh(request: Request) -> RefreshReportResponse:
+    report = inventory.refresh_inventory(
+        request.app.state.projects, request.app.state.project_source
+    )
+    return RefreshReportResponse(
+        run_id=report.run_id,
+        source="vyasa",
+        started_at=report.started_at,
+        finished_at=report.finished_at,
+        outcome=report.outcome,
+        index_version=report.index_version,
+        freshness=report.freshness,
+        projects_total=report.projects_total,
+        counts=report.counts,
+    )
 
 
 def _page_response(page: GoalPage) -> GoalPageResponse:
@@ -269,6 +300,35 @@ def install_error_handlers(app: FastAPI) -> None:
                 "revision_conflict",
                 "expected_revision does not match the current revision",
                 details=[{"current_revision": exc.current_revision}],
+            ),
+        )
+
+    @app.exception_handler(inventory.SourceNotConfigured)
+    async def source_not_configured(
+        request: Request, exc: inventory.SourceNotConfigured
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=503,
+            content=error_body(
+                request,
+                "unavailable",
+                "source_not_configured",
+                "no inventory source is configured",
+            ),
+        )
+
+    @app.exception_handler(inventory.SourceUnavailable)
+    async def source_unavailable(
+        request: Request, exc: inventory.SourceUnavailable
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=503,
+            content=error_body(
+                request,
+                "unavailable",
+                "source_unavailable",
+                "the Vyasa source is unavailable",
+                details=[{"run_id": exc.run_id, "failure": exc.category}],
             ),
         )
 

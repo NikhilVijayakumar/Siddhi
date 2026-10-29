@@ -80,6 +80,24 @@ def test_unusable_values_name_the_setting(tmp_path, environ, setting):
     assert refused.value.setting == setting
 
 
+def test_vyasa_command_is_optional_and_blank_is_refused(tmp_path):
+    unset = load_settings(environ={}, settings_file=tmp_path / "absent.json")
+    assert unset.vyasa_mcp_command is None
+
+    configured = load_settings(
+        environ={"SIDDHI_VYASA_MCP_COMMAND": r"E:\MCP\vyasa-mcp.exe"},
+        settings_file=tmp_path / "absent.json",
+    )
+    assert configured.vyasa_mcp_command == r"E:\MCP\vyasa-mcp.exe"
+
+    with pytest.raises(ConfigError) as refused:
+        load_settings(
+            environ={"SIDDHI_VYASA_MCP_COMMAND": "   "},
+            settings_file=tmp_path / "absent.json",
+        )
+    assert refused.value.setting == "SIDDHI_VYASA_MCP_COMMAND"
+
+
 def test_a_malformed_settings_file_is_reported_by_setting(tmp_path):
     path = tmp_path / "settings.json"
     path.write_text("{not json", encoding="utf-8")

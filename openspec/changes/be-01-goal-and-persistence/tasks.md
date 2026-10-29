@@ -69,15 +69,33 @@ Traceability: `fun-01`/`tech-02` specs; `api-contract.md` §6;
 Covers: *Capture a goal before any project exists*, *Absent information stays explicitly
 unknown*, and the create side of *Reject invalid changes atomically*.
 
-- [ ] 3.1 Failing tests: minimal create returns `201` with `revision: 0` and every
+- [x] 3.1 Failing tests: minimal create returns `201` with `revision: 0` and every
       unrecorded field listed in `unknown_fields`; a publication-outcome goal requires no
       stage or time field; blank title and an unknown outcome type are rejected with no
       row created; an unknown request field is rejected.
-- [ ] 3.2 Implement domain validation (title length after trim, outcome type set,
+      `tests/api/test_create_goal.py` (9 tests, confirmed failing first). Covers the
+      reported-null fields, both non-software outcomes, validation with no row written,
+      unknown/priority/extra-field rejection, the initial revision, and the correlation id.
+- [x] 3.2 Implement domain validation (title length after trim, outcome type set,
       priority set) and the goal entity.
-- [ ] 3.3 Implement `POST /goals` with one transaction inserting the goal row and its
+      `domain/goal.py`: value sets, `Goal` with derived `unknown_fields`, `InvalidGoal`
+      naming the field, `validate_new_goal`.
+- [x] 3.3 Implement `POST /goals` with one transaction inserting the goal row and its
       initial revision (`changed_fields` = all supplied fields).
-- [ ] 3.4 Tests pass.
+      `application/goals.py` (port + `create_goal`), `adapters/sqlite/goal_repository.py`
+      (`BEGIN IMMEDIATE`, goal row + revision row), `api/http.py` (models, route,
+      correlation id, contract-shaped 422), `bootstrap/app.py` (`create_app`).
+      Decisions: the creation revision is `revision_number 0` with `prior_state {}` so
+      `goals.revision` still equals the highest revision number (contract §5 invariant);
+      "supplied fields" means the fields carrying a non-null value. A title is stored as
+      submitted (only blank-checked after trimming) because the spec asks for a goal
+      "retrievable exactly as created". OpenAPI/docs routes are off: the contract is the
+      only surface.
+- [x] 3.4 Tests pass.
+      `.venv/Scripts/python -m pytest` → 16 passed. Not the system interpreter: the
+      global environment has `starlette 1.6.0` against `fastapi 0.121.3`, which requires
+      `starlette<0.51`, so `FastAPI()` raises before routing. Project venv created
+      (gitignored); `httpx` added to the `dev` extra because `TestClient` needs it.
 
 Traceability: FR-001, FR-002, FR-005, FR-044; `data-model.md`, `portfolio-domain.md`.
 

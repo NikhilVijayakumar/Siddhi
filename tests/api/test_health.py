@@ -3,10 +3,11 @@
 import logging
 
 import pytest
+from fastapi.testclient import TestClient
 
-from tests.fakes import FakeSource, inventory, project
-
+from siddhi.bootstrap.app import create_app
 from siddhi.domain.project import SourceError
+from tests.fakes import FakeSource, inventory, project
 
 
 def test_health_reports_service_database_and_integrations(client):
@@ -74,6 +75,22 @@ def test_health_reveals_neither_the_executable_nor_the_source_message(make_clien
     assert executable not in body
     assert "refused to start" not in body
     assert "secret" not in body.lower()
+
+
+def test_an_unexpected_failure_is_an_envelope_without_local_detail(db_path, monkeypatch):
+    def boom(*arguments):
+        raise RuntimeError(r"C:\secret\siddhi.db")
+
+    monkeypatch.setattr("siddhi.api.http.health_report", boom)
+
+    with TestClient(create_app(db_path), raise_server_exceptions=False) as client:
+        response = client.get("/health")
+
+    assert response.status_code == 500, response.text
+    error = response.json()["error"]
+    assert (error["category"], error["code"]) == ("internal", "internal_error")
+    assert error["correlation_id"]
+    assert "secret" not in response.text.lower()
 
 
 def test_unusable_database_is_unavailable_not_a_crash(client, db_path):

@@ -138,7 +138,8 @@ line or a response. Logs record the run id, outcome, category and duration only.
 - No credentials exist in this slice; the local process inherits the environment, so
   no credential is passed explicitly.
 - Loopback binding remains the only access control; local authentication stays an open
-  owner decision.
+  owner decision. Because a refresh spawns a process and rewrites the inventory, a
+  state-changing request whose `Origin` is not this machine is refused before it runs.
 
 ## 8. Testing and evidence
 

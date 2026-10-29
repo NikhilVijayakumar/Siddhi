@@ -21,7 +21,7 @@ def test_serve_configures_the_vyasa_source_only_when_given(tmp_path):
     apps = []
     configured = Settings(
         database_path=tmp_path / "configured.db",
-        vyasa_mcp_command=r"C:\vyasa\vyasa-mcp.exe",
+        vyasa_mcp_command=str(tmp_path / "tools" / "vyasa-mcp.exe"),
     )
     unconfigured = Settings(database_path=tmp_path / "plain.db")
 

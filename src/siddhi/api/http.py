@@ -4,6 +4,7 @@ import logging
 import sqlite3
 import time
 from datetime import date
+from urllib.parse import urlsplit
 from uuid import uuid4
 
 from fastapi import APIRouter, FastAPI, Query, Request
@@ -290,7 +291,18 @@ def add_correlation_id(app: FastAPI) -> None:
     async def correlation_id(request: Request, call_next):
         request.state.correlation_id = uuid4().hex
         started = time.perf_counter()
-        response = await call_next(request)
+        if request.method not in ("GET", "HEAD", "OPTIONS") and _cross_site(request):
+            response = JSONResponse(
+                status_code=403,
+                content=error_body(
+                    request,
+                    "forbidden",
+                    "cross_site_request",
+                    "the request did not come from this machine",
+                ),
+            )
+        else:
+            response = await call_next(request)
         response.headers["X-Correlation-Id"] = request.state.correlation_id
         log_event(
             logger,
@@ -302,6 +314,14 @@ def add_correlation_id(app: FastAPI) -> None:
             duration_ms=round((time.perf_counter() - started) * 1000, 1),
         )
         return response
+
+
+def _cross_site(request: Request) -> bool:
+    """A browser sends Origin; a local client need not. Refuse a foreign origin."""
+    origin = request.headers.get("origin")
+    if origin is None:
+        return False
+    return urlsplit(origin).hostname not in ("127.0.0.1", "localhost", "::1")
 
 
 def error_body(
@@ -431,5 +451,21 @@ def install_error_handlers(app: FastAPI) -> None:
                 "unavailable",
                 "database_unavailable",
                 "the local database is unavailable",
+            ),
+        )
+
+    @app.exception_handler(Exception)
+    async def unexpected(request: Request, exc: Exception) -> JSONResponse:
+        # Exception text can carry a local path; only its type is logged.
+        log_event(
+            logger,
+            "http.unexpected",
+            correlation_id=request.state.correlation_id,
+            error=type(exc).__name__,
+        )
+        return JSONResponse(
+            status_code=500,
+            content=error_body(
+                request, "internal", "internal_error", "the request could not be completed"
             ),
         )

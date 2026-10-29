@@ -137,6 +137,7 @@ The envelope and categories stay as fixed by `be-01-goal-and-persistence`:
 |---|---|---|---|
 | `validation` | 422 | `invalid_field` | Rejected query or cursor before any read |
 | `not_found` | 404 | `project_not_found` | No stored project uses that identifier |
+| `forbidden` | 403 | `cross_site_request` | A state-changing request whose `Origin` is not this machine |
 | `unavailable` | 503 | `source_unavailable`, `source_not_configured` | Vyasa could not supply inventory; local data unchanged |
 | `internal` | 500 | `internal_error` | Unexpected failure; correlation id only |
 

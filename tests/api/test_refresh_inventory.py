@@ -126,6 +126,25 @@ def test_a_failed_refresh_keeps_inventory_and_goals_and_records_the_failure(make
     }
 
 
+def test_a_cross_site_refresh_is_refused_before_the_source_runs(make_client, db_path):
+    source = FakeSource(inventory(project()))
+
+    with make_client(source) as client:
+        response = client.post(REFRESH, headers={"Origin": "https://example.test"})
+
+    assert response.status_code == 403, response.text
+    assert response.json()["error"]["code"] == "cross_site_request"
+    assert source.calls == 0
+    assert rows(db_path, "SELECT id FROM ingestion_runs") == []
+
+
+def test_a_loopback_origin_is_this_machine(make_client):
+    with make_client(FakeSource(inventory(project()))) as client:
+        response = client.post(REFRESH, headers={"Origin": "http://127.0.0.1:8000"})
+
+    assert response.status_code == 200, response.text
+
+
 def test_a_refresh_body_is_refused_instead_of_ignored(make_client):
     with make_client(FakeSource(inventory())) as client:
         response = client.post(REFRESH, json={"unexpected": 1})

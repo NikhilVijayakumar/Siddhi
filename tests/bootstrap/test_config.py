@@ -81,14 +81,15 @@ def test_unusable_values_name_the_setting(tmp_path, environ, setting):
 
 
 def test_vyasa_command_is_optional_and_blank_is_refused(tmp_path):
+    command = str(tmp_path / "tools" / "vyasa-mcp.exe")
     unset = load_settings(environ={}, settings_file=tmp_path / "absent.json")
     assert unset.vyasa_mcp_command is None
 
     configured = load_settings(
-        environ={"SIDDHI_VYASA_MCP_COMMAND": r"E:\MCP\vyasa-mcp.exe"},
+        environ={"SIDDHI_VYASA_MCP_COMMAND": command},
         settings_file=tmp_path / "absent.json",
     )
-    assert configured.vyasa_mcp_command == r"E:\MCP\vyasa-mcp.exe"
+    assert configured.vyasa_mcp_command == command
 
     with pytest.raises(ConfigError) as refused:
         load_settings(

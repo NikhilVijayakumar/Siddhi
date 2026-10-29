@@ -94,8 +94,8 @@ class _Session:
             )
         except OSError:
             raise SourceError("connection_failed", "the source process could not start") from None
-        threading.Thread(target=self._read_stdout, daemon=True).start()
         try:
+            threading.Thread(target=self._read_stdout, daemon=True).start()
             result = self._request(
                 "initialize",
                 {
@@ -189,8 +189,10 @@ class _Session:
                 continue
             try:
                 self._messages.put(json.loads(line))
-            except ValueError:
+            except Exception:
+                # Any unparseable line ends the read; the caller fails fast instead of hanging.
                 self._messages.put(_MALFORMED)
+                return
 
     def _exited(self) -> bool:
         return self._process is not None and self._process.poll() is not None
@@ -212,7 +214,10 @@ class _Session:
                 process.wait(timeout=2)
             except subprocess.TimeoutExpired:
                 process.kill()
-                process.wait()
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    pass
 
 
 _MALFORMED = object()

@@ -138,10 +138,39 @@ Vyasa failure*.
       `active`, `resolved`, `bitbucket`, `Python`; a second refresh was 74 unchanged.
       The smoke run found one real defect: Vyasa sends `index_version` as a number, so
       the adapter now keeps a numeric scalar as text (test added).
-- [ ] 6.3 Run `openspec validate be-02-vyasa-project-inventory` and the delta view.
-- [ ] 6.4 Review against the contract with `code-reviewer`; security pass with
+- [x] 6.3 Run `openspec validate be-02-vyasa-project-inventory` and the delta view.
+      Evidence: `Change 'be-02-vyasa-project-inventory' is valid` (run twice, before and
+      after the review round; no separate delta view was needed).
+- [x] 6.4 Review against the contract with `code-reviewer`; security pass with
       `code-review-security` and `secrets-scan`; no dependency change, so no SCA run.
-- [ ] 6.5 Report honest gaps: one deployment verified, no partial publication, run
+      Findings fixed: a failed handshake leaked the child process (now closed on any
+      handshake failure, covered by a marker-file scenario); a page without `has_more`
+      was treated as complete (now `unsupported_contract`); a tool-level `unavailable`
+      was reported as `tool_error` (now `unavailable`); a `RecursionError` in the reader
+      thread turned a fast failure into a timeout (now any unparseable line fails
+      fast); unbounded `readline` (now capped at 1 MB); the refresh ignored an unknown
+      body field (now `422`); `/health` omitted `last_run` in the non-configured and
+      store-unavailable branches (now always present); a forged cursor with non-string
+      values was coerced (now `422`); real-looking executable paths in `tests/bootstrap`
+      replaced with `tmp_path` values; `*.db`/`*.bak`/`settings.json` ignored.
+      Added: a cross-site `Origin` on a state-changing request is refused (`403
+      cross_site_request`) before the source runs; an unexpected exception returns the
+      `500 internal` envelope instead of a plaintext traceback.
+      Accepted and recorded instead: per-message timeout is not a per-refresh deadline,
+      concurrent refreshes are not serialised, the child inherits the environment, and
+      loopback binding remains the only access control (no authentication).
+      `secrets-scan`: no credentials; scanner not installed, so the result is
+      pattern-based, not tool-certified.
+- [x] 6.5 Report honest gaps: one deployment verified, no partial publication, run
       history unbounded, refresh synchronous.
+      Gaps: only one Vyasa deployment was verified (v1 contract, `index_version` 11);
+      the adapter returns only a complete inventory, so "failure after the first page
+      publishes nothing" is enforced structurally rather than exercised end-to-end with
+      a real second page; run history has no retention rule; a refresh is synchronous
+      and neither the whole-refresh duration (100 pages x per-message timeout) nor
+      concurrent refreshes are bounded; `MAX_PAGES`/`MAX_PROJECTS` bounds are not
+      exercised by a test; `last_observed_at` is the run's `started_at`, and a project
+      removed and later re-added gets a new `first_observed_at`. Source-supplied field
+      lengths are bounded only by the 1 MB message cap.
 - [ ] 6.6 Merge `--no-ff` into `develop`, push, archive the change, and replace any
       placeholder `## Purpose` in the synced specs.

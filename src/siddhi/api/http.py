@@ -4,6 +4,7 @@ import logging
 import sqlite3
 import time
 from datetime import date
+from urllib.parse import urlsplit
 from uuid import uuid4
 
 from fastapi import APIRouter, FastAPI, Query, Request
@@ -11,6 +12,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
+from siddhi.application import inventory
 from siddhi.application.goals import (
     DEFAULT_LIMIT,
     MAX_LIMIT,
@@ -27,6 +29,7 @@ from siddhi.application.goals import (
     revise_goal,
 )
 from siddhi.domain.goal import InvalidGoal
+from siddhi.domain.project import StoredProject
 from siddhi.observability.health import health_report
 from siddhi.observability.logging import log_event
 
@@ -110,9 +113,47 @@ class RevisionPageResponse(BaseModel):
     has_more: bool
 
 
+class RefreshRequest(BaseModel):
+    """The refresh takes no request body; unknown fields are refused, not ignored."""
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class RefreshReportResponse(BaseModel):
+    run_id: str
+    source: str
+    started_at: str
+    finished_at: str
+    outcome: str
+    index_version: str | None
+    freshness: str | None
+    projects_total: int
+    counts: dict[str, int]
+
+
+class ProjectResponse(BaseModel):
+    project_id: str
+    display_name: str
+    state: str
+    identity_status: str
+    providers: list[str]
+    languages: list[str]
+    first_observed_at: str
+    last_observed_at: str
+    freshness: str | None
+
+
+class ProjectPageResponse(BaseModel):
+    items: list[ProjectResponse]
+    next_cursor: str | None
+    has_more: bool
+
+
 @router.get("/health")
 def get_health(request: Request) -> JSONResponse:
-    payload, status_code = health_report(request.app.state.db_path)
+    payload, status_code = health_report(
+        request.app.state.db_path, request.app.state.project_source is not None
+    )
     return JSONResponse(status_code=status_code, content=payload)
 
 
@@ -167,6 +208,58 @@ def get_revisions(
     return _revision_page_response(page)
 
 
+@router.post("/ingestion/vyasa/refresh", response_model=RefreshReportResponse)
+def post_refresh(request: Request, body: RefreshRequest | None = None) -> RefreshReportResponse:
+    report = inventory.refresh_inventory(
+        request.app.state.projects, request.app.state.project_source
+    )
+    return RefreshReportResponse(
+        run_id=report.run_id,
+        source="vyasa",
+        started_at=report.started_at,
+        finished_at=report.finished_at,
+        outcome=report.outcome,
+        index_version=report.index_version,
+        freshness=report.freshness,
+        projects_total=report.projects_total,
+        counts=report.counts,
+    )
+
+
+@router.get("/projects", response_model=ProjectPageResponse)
+def get_projects(
+    request: Request,
+    state: str = "all",
+    limit: int = Query(inventory.DEFAULT_LIMIT, ge=1, le=inventory.MAX_LIMIT),
+    cursor: str | None = None,
+) -> ProjectPageResponse:
+    page = inventory.list_projects(request.app.state.projects, state, limit, cursor)
+    return ProjectPageResponse(
+        items=[_project_response(project) for project in page.items],
+        next_cursor=page.next_cursor,
+        has_more=page.has_more,
+    )
+
+
+@router.get("/projects/{project_id}", response_model=ProjectResponse)
+def get_project(request: Request, project_id: str) -> ProjectResponse:
+    return _project_response(inventory.get_project(request.app.state.projects, project_id))
+
+
+def _project_response(project: StoredProject) -> ProjectResponse:
+    return ProjectResponse(
+        project_id=project.project_id,
+        display_name=project.display_name,
+        state=project.state,
+        identity_status=project.identity_status,
+        providers=list(project.providers),
+        languages=list(project.languages),
+        first_observed_at=project.first_observed_at,
+        last_observed_at=project.last_observed_at,
+        freshness=project.freshness,
+    )
+
+
 def _page_response(page: GoalPage) -> GoalPageResponse:
     return GoalPageResponse(
         items=[GoalResponse.model_validate(goal) for goal in page.items],
@@ -198,7 +291,18 @@ def add_correlation_id(app: FastAPI) -> None:
     async def correlation_id(request: Request, call_next):
         request.state.correlation_id = uuid4().hex
         started = time.perf_counter()
-        response = await call_next(request)
+        if request.method not in ("GET", "HEAD", "OPTIONS") and _cross_site(request):
+            response = JSONResponse(
+                status_code=403,
+                content=error_body(
+                    request,
+                    "forbidden",
+                    "cross_site_request",
+                    "the request did not come from this machine",
+                ),
+            )
+        else:
+            response = await call_next(request)
         response.headers["X-Correlation-Id"] = request.state.correlation_id
         log_event(
             logger,
@@ -210,6 +314,14 @@ def add_correlation_id(app: FastAPI) -> None:
             duration_ms=round((time.perf_counter() - started) * 1000, 1),
         )
         return response
+
+
+def _cross_site(request: Request) -> bool:
+    """A browser sends Origin; a local client need not. Refuse a foreign origin."""
+    origin = request.headers.get("origin")
+    if origin is None:
+        return False
+    return urlsplit(origin).hostname not in ("127.0.0.1", "localhost", "::1")
 
 
 def error_body(
@@ -272,6 +384,57 @@ def install_error_handlers(app: FastAPI) -> None:
             ),
         )
 
+    @app.exception_handler(inventory.ProjectNotFound)
+    async def project_not_found(
+        request: Request, exc: inventory.ProjectNotFound
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=404,
+            content=error_body(
+                request, "not_found", "project_not_found", "no project uses that identifier"
+            ),
+        )
+
+    @app.exception_handler(inventory.InvalidProject)
+    async def invalid_project(
+        request: Request, exc: inventory.InvalidProject
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=422,
+            content=error_body(
+                request, "validation", "invalid_field", exc.message, exc.field
+            ),
+        )
+
+    @app.exception_handler(inventory.SourceNotConfigured)
+    async def source_not_configured(
+        request: Request, exc: inventory.SourceNotConfigured
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=503,
+            content=error_body(
+                request,
+                "unavailable",
+                "source_not_configured",
+                "no inventory source is configured",
+            ),
+        )
+
+    @app.exception_handler(inventory.SourceUnavailable)
+    async def source_unavailable(
+        request: Request, exc: inventory.SourceUnavailable
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=503,
+            content=error_body(
+                request,
+                "unavailable",
+                "source_unavailable",
+                "the Vyasa source is unavailable",
+                details=[{"run_id": exc.run_id, "failure": exc.category}],
+            ),
+        )
+
     @app.exception_handler(sqlite3.Error)
     async def database_unavailable(request: Request, exc: sqlite3.Error) -> JSONResponse:
         # sqlite3 messages carry the database path, so only the exception type is logged.
@@ -288,5 +451,21 @@ def install_error_handlers(app: FastAPI) -> None:
                 "unavailable",
                 "database_unavailable",
                 "the local database is unavailable",
+            ),
+        )
+
+    @app.exception_handler(Exception)
+    async def unexpected(request: Request, exc: Exception) -> JSONResponse:
+        # Exception text can carry a local path; only its type is logged.
+        log_event(
+            logger,
+            "http.unexpected",
+            correlation_id=request.state.correlation_id,
+            error=type(exc).__name__,
+        )
+        return JSONResponse(
+            status_code=500,
+            content=error_body(
+                request, "internal", "internal_error", "the request could not be completed"
             ),
         )

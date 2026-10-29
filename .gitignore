@@ -62,6 +62,14 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 
+# Local Siddhi store, its migration backups and machine-local settings
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.bak
+settings.json
+
 # Flask stuff:
 instance/
 .webassets-cache

@@ -38,18 +38,20 @@ def tables(path: Path) -> set[str]:
         }
 
 
-def test_fresh_database_is_created_at_version_one(db_path):
+def test_fresh_database_is_created_at_the_latest_version(db_path):
     assert not db_path.exists()
 
-    assert apply_migrations(db_path) == 1
+    assert apply_migrations(db_path) == 2
 
-    assert {"schema_version", "goals", "goal_revisions"} <= tables(db_path)
+    assert {"schema_version", "goals", "goal_revisions", "ingestion_runs", "projects"} <= tables(
+        db_path
+    )
     with closing(sqlite3.connect(db_path)) as connection:
         ledger = connection.execute(
             "SELECT version, applied_at FROM schema_version ORDER BY version"
         ).fetchall()
-    assert [version for version, _ in ledger] == [1]
-    assert ledger[0][1].endswith("Z")
+    assert [version for version, _ in ledger] == [1, 2]
+    assert all(applied_at.endswith("Z") for _, applied_at in ledger)
 
 
 def test_no_backup_is_taken_when_there_is_nothing_to_lose(db_path):
@@ -69,7 +71,7 @@ def test_newer_database_is_refused_naming_both_versions(db_path):
         apply_migrations(db_path)
 
     assert "99" in str(refused.value)
-    assert "1" in str(refused.value)
+    assert "2" in str(refused.value)
     with closing(sqlite3.connect(db_path)) as connection:
         assert connection.execute("SELECT MAX(version) FROM schema_version").fetchone()[0] == 99
         assert connection.execute("SELECT COUNT(*) FROM goals").fetchone()[0] == 0

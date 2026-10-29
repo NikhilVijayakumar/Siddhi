@@ -4,16 +4,16 @@ import sqlite3
 from contextlib import closing
 from pathlib import Path
 
+from siddhi.adapters.sqlite.project_repository import SqliteProjectRepository
 from siddhi.adapters.sqlite.runner import connect, read_schema_version
 
-INTEGRATIONS = {"status": "not_configured", "detail": "no source adapters in this change"}
 
-
-def health_report(db_path: Path) -> tuple[dict, int]:
-    """The payload and its status code; only reachability and version are read."""
+def health_report(db_path: Path, source_configured: bool = False) -> tuple[dict, int]:
+    """The payload and its status code; only reachability, version and the last run are read."""
     try:
         with closing(connect(db_path)) as connection:
             version = read_schema_version(connection)
+        integrations = _integrations(db_path, source_configured)
     except sqlite3.Error:
         return (
             {
@@ -22,7 +22,11 @@ def health_report(db_path: Path) -> tuple[dict, int]:
                 "checks": {
                     "service": {"status": "ok"},
                     "database": {"status": "unavailable"},
-                    "integrations": dict(INTEGRATIONS),
+                    "integrations": {
+                        "status": "unavailable",
+                        "source": "vyasa",
+                        "last_run": None,
+                    },
                 },
             },
             503,
@@ -34,8 +38,26 @@ def health_report(db_path: Path) -> tuple[dict, int]:
             "checks": {
                 "service": {"status": "ok"},
                 "database": {"status": "ok", "schema_version": version},
-                "integrations": dict(INTEGRATIONS),
+                "integrations": integrations,
             },
         },
         200,
     )
+
+
+def _integrations(db_path: Path, source_configured: bool) -> dict:
+    if not source_configured:
+        return {"status": "not_configured", "source": "vyasa", "last_run": None}
+    run = SqliteProjectRepository(db_path).latest_run()
+    return {
+        "status": "configured",
+        "source": "vyasa",
+        "last_run": None
+        if run is None
+        else {
+            "run_id": run.run_id,
+            "outcome": run.outcome,
+            "finished_at": run.finished_at,
+            "freshness": run.freshness,
+        },
+    }

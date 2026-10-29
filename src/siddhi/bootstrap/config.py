@@ -31,6 +31,7 @@ class Settings:
     bind_host: str = DEFAULT_BIND_HOST
     bind_port: int = DEFAULT_BIND_PORT
     log_level: str = DEFAULT_LOG_LEVEL
+    vyasa_mcp_command: str | None = None
 
 
 def load_settings(
@@ -65,6 +66,7 @@ def load_settings(
         bind_host=bind_host,
         bind_port=_port(resolve("bind_port", DEFAULT_BIND_PORT)),
         log_level=log_level,
+        vyasa_mcp_command=_command(resolve("vyasa_mcp_command", None)),
     )
 
 
@@ -75,6 +77,18 @@ def _is_loopback(host: str) -> bool:
         return ipaddress.ip_address(host).is_loopback
     except ValueError:
         return False
+
+
+def _command(value: object) -> str | None:
+    """A path kept verbatim; unset turns the integration off, blank is a mistake."""
+    if value is None:
+        return None
+    command = str(value).strip()
+    if not command:
+        raise ConfigError(
+            f"{ENV_PREFIX}VYASA_MCP_COMMAND", "must be an executable path or unset"
+        )
+    return command
 
 
 def _port(value: object) -> int:

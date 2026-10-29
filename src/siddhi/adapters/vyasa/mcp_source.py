@@ -70,6 +70,10 @@ class VyasaMcpSource:
                 seen_cursors.add(cursor)
         raise SourceError("protocol_error", "the source exceeded the page bound")
 
+    def get_project(self, project_id: str) -> dict:
+        with _Session(self._command, self._timeout) as session:
+            return session.get_project(project_id)
+
 
 class _Session:
     """One child process, one handshake, then request/response pairs."""
@@ -134,6 +138,12 @@ class _Session:
             raise SourceError("unsupported_contract", f"the {name} answer has no data")
         meta = payload.get("meta")
         return data, meta if isinstance(meta, dict) else {}
+
+    def get_project(self, project_id: str) -> dict:
+        data, _meta = self.call_tool("get_project", {"project_id": project_id})
+        if data.get("project_id") != project_id:
+            raise SourceError("protocol_error", "the source returned a different project")
+        return data
 
     def _request(self, method: str, params: dict) -> object:
         self._next_id += 1

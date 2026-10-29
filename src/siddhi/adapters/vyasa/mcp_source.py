@@ -25,7 +25,7 @@ CLIENT_INFO = {"name": "siddhi", "version": "0.1.0"}
 
 
 class VyasaMcpSource:
-    """Fetches one complete inventory, or fails with a category and no data."""
+    """One inventory read or one targeted project retrieval, or a named source failure."""
 
     def __init__(self, command: Sequence[str], timeout: float = 60.0) -> None:
         if not command:
@@ -69,6 +69,10 @@ class VyasaMcpSource:
                     raise SourceError("protocol_error", "the source cursor did not advance")
                 seen_cursors.add(cursor)
         raise SourceError("protocol_error", "the source exceeded the page bound")
+
+    def get_project(self, project_id: str) -> dict:
+        with _Session(self._command, self._timeout) as session:
+            return session.get_project(project_id)
 
 
 class _Session:
@@ -134,6 +138,12 @@ class _Session:
             raise SourceError("unsupported_contract", f"the {name} answer has no data")
         meta = payload.get("meta")
         return data, meta if isinstance(meta, dict) else {}
+
+    def get_project(self, project_id: str) -> dict:
+        data, _meta = self.call_tool("get_project", {"project_id": project_id})
+        if data.get("project_id") != project_id:
+            raise SourceError("protocol_error", "the source returned a different project")
+        return data
 
     def _request(self, method: str, params: dict) -> object:
         self._next_id += 1

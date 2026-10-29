@@ -57,8 +57,10 @@ A project summary carries `project_id` (32 hexadecimal characters), `display_nam
 `state` (`active`, `missing`, `inaccessible`), `identity_status` (`resolved`,
 `provisional`, `ambiguous`), `providers`, `has_open_candidates`, `matched`, and
 `languages`; a page carries `limit`, `next_cursor`, and `has_more`. `get_project`
-adds aliases, checkouts with their remote status, and per-group `status` plus
-`observed_at`. `get_index_status` reports the latest scan run with `status`,
+returns one project detail for a requested identifier, carrying identity, aliases and
+checkouts; each checkout carries group observations (markers, git, remote, languages,
+composition, frameworks, report) with per-group `status` and `observed_at`, plus
+first/last seen times. `get_index_status` reports the latest scan run with `status`,
 `finished_at`, and counts, plus project counts by state.
 
 A `missing` or `inaccessible` project state is a source claim about a known

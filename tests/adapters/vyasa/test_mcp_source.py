@@ -43,8 +43,54 @@ def envelope(projects, page, version="1"):
     }
 
 
+def get_answer(requested):
+    if scenario == "get_unsupported":
+        payload = envelope([], {"limit": 100, "next_cursor": None, "has_more": False}, version="2")
+        return {"isError": False, "content": [{"type": "text", "text": json.dumps(payload)}], "structuredContent": payload}
+    if scenario == "get_error":
+        return {
+            "isError": True,
+            "content": [
+                {"type": "text", "text": json.dumps({"error": {"code": "internal_error", "message": "no index"}})}
+            ],
+        }
+    if scenario == "get_other":
+        detail = {
+            "project_id": "zzz",
+            "aliases": [],
+            "checkouts": [],
+            "languages": [],
+            "markers": [],
+            "frameworks": [],
+        }
+        payload = {
+            "schema_version": "1",
+            "data": detail,
+            "meta": {"generated_at": "2026-10-29T12:00:00Z", "index_version": "11", "freshness": "current"},
+        }
+        return {"isError": False, "content": [{"type": "text", "text": json.dumps(payload)}], "structuredContent": payload}
+    detail = {
+        "project_id": requested,
+        "aliases": ["siddhi"],
+        "checkouts": [
+            {"remote": "https://github.com/owner/repo", "status": "clean", "observed_at": "2026-10-29T12:00:00Z"}
+        ],
+        "languages": ["Python"],
+        "markers": ["implementation:complete"],
+        "frameworks": ["fastapi"],
+    }
+    payload = {
+        "schema_version": "1",
+        "data": detail,
+        "meta": {"generated_at": "2026-10-29T12:00:00Z", "index_version": "11", "freshness": "current"},
+    }
+    return {"isError": False, "content": [{"type": "text", "text": json.dumps(payload)}], "structuredContent": payload}
+
+
 def answer(message):
     arguments = message["params"]["arguments"]
+    if "project_id" in arguments:
+        return get_answer(arguments["project_id"])
     if scenario in ("tool_error", "tool_unavailable"):
         code = "unavailable" if scenario == "tool_unavailable" else "internal_error"
         return {
@@ -239,3 +285,32 @@ def test_an_executable_that_cannot_start_is_a_connection_failure(tmp_path):
         VyasaMcpSource([str(tmp_path / "absent-vyasa.exe")]).fetch_inventory()
 
     assert failed.value.category == "connection_failed"
+
+
+def test_a_get_project_returns_the_detail(command):
+    detail = VyasaMcpSource(command("get_ok")).get_project("a")
+
+    assert detail["project_id"] == "a"
+    assert detail["aliases"] == ["siddhi"]
+    assert detail["checkouts"][0]["status"] == "clean"
+
+
+def test_a_get_project_with_an_unsupported_version_fails(command):
+    with pytest.raises(SourceError) as failed:
+        VyasaMcpSource(command("get_unsupported")).get_project("a")
+
+    assert failed.value.category == "unsupported_contract"
+
+
+def test_a_get_project_propagating_a_tool_error_maps_a_category(command):
+    with pytest.raises(SourceError) as failed:
+        VyasaMcpSource(command("get_error")).get_project("a")
+
+    assert failed.value.category == "tool_error"
+
+
+def test_a_get_project_for_a_different_identifier_fails(command):
+    with pytest.raises(SourceError) as failed:
+        VyasaMcpSource(command("get_other")).get_project("a")
+
+    assert failed.value.category == "protocol_error"

@@ -3,12 +3,21 @@
 from datetime import date
 from uuid import uuid4
 
-from fastapi import APIRouter, FastAPI, Request
+from fastapi import APIRouter, FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict
 
-from siddhi.application.goals import NewGoal, create_goal
+from siddhi.application.goals import (
+    DEFAULT_LIMIT,
+    MAX_LIMIT,
+    GoalNotFound,
+    GoalPage,
+    NewGoal,
+    create_goal,
+    get_goal,
+    list_goals,
+)
 from siddhi.domain.goal import InvalidGoal
 
 router = APIRouter()
@@ -51,10 +60,40 @@ class GoalResponse(BaseModel):
     archived_at: str | None
 
 
+class GoalPageResponse(BaseModel):
+    items: list[GoalResponse]
+    next_cursor: str | None
+    has_more: bool
+
+
 @router.post("/goals", status_code=201, response_model=GoalResponse)
 def post_goal(body: CreateGoalRequest, request: Request) -> GoalResponse:
     goal = create_goal(request.app.state.goals, NewGoal(**body.model_dump()))
     return GoalResponse.model_validate(goal)
+
+
+@router.get("/goals", response_model=GoalPageResponse)
+def get_goals(
+    request: Request,
+    status: str = "active",
+    limit: int = Query(DEFAULT_LIMIT, ge=1, le=MAX_LIMIT),
+    cursor: str | None = None,
+) -> GoalPageResponse:
+    page = list_goals(request.app.state.goals, status, limit, cursor)
+    return _page_response(page)
+
+
+@router.get("/goals/{goal_id}", response_model=GoalResponse)
+def get_one_goal(goal_id: str, request: Request) -> GoalResponse:
+    return GoalResponse.model_validate(get_goal(request.app.state.goals, goal_id))
+
+
+def _page_response(page: GoalPage) -> GoalPageResponse:
+    return GoalPageResponse(
+        items=[GoalResponse.model_validate(goal) for goal in page.items],
+        next_cursor=page.next_cursor,
+        has_more=page.has_more,
+    )
 
 
 def add_correlation_id(app: FastAPI) -> None:
@@ -101,4 +140,13 @@ def install_error_handlers(app: FastAPI) -> None:
         return JSONResponse(
             status_code=422,
             content=error_body(request, "validation", "invalid_field", first["msg"], field),
+        )
+
+    @app.exception_handler(GoalNotFound)
+    async def goal_not_found(request: Request, exc: GoalNotFound) -> JSONResponse:
+        return JSONResponse(
+            status_code=404,
+            content=error_body(
+                request, "not_found", "goal_not_found", "no goal uses that identifier"
+            ),
         )

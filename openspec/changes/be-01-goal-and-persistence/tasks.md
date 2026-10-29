@@ -103,13 +103,25 @@ Traceability: FR-001, FR-002, FR-005, FR-044; `data-model.md`, `portfolio-domain
 
 Covers: *Retrieve and list goals*.
 
-- [ ] 4.1 Failing tests: retrieval by id; unknown id is `404`; listing is bounded and
+- [x] 4.1 Failing tests: retrieval by id; unknown id is `404`; listing is bounded and
       active-only by default; following `next_cursor` yields the remaining goals with no
       duplicates or gaps; `status=archived` and `status=all` filter correctly; an
       invalid cursor is a validation error.
-- [ ] 4.2 Implement keyset pagination on `(created_at DESC, id ASC)` and the opaque
+      `tests/api/test_list_goals.py` (12 tests, confirmed failing first: new routes
+      returned `405`/`{"detail": …}` before they existed). Adds round-trip retrieval,
+      archived-goal retrieval, the three-status filter, an identical-`created_at`
+      ordering case, invalid cursors and out-of-range `limit`/`status`.
+- [x] 4.2 Implement keyset pagination on `(created_at DESC, id ASC)` and the opaque
       cursor codec.
-- [ ] 4.3 Tests pass, including the page-boundary case.
+      `list_page` in `adapters/sqlite/goal_repository.py` selects `limit + 1` rows and
+      filters on `created_at < ? OR (created_at = ? AND id > ?)`; `application/goals.py`
+      encodes `{"created_at","id"}` as unpadded urlsafe base64 and rejects a cursor that
+      does not decode with `InvalidGoal("cursor", …)`. The shared `client` fixture moved
+      to `tests/conftest.py`.
+- [x] 4.3 Tests pass, including the page-boundary case.
+      `.venv/Scripts/python -m pytest` → 28 passed. Known gap: an unknown *path* (not an
+      unknown goal) still returns FastAPI's default `{"detail": …}` body, because only
+      `404` for a missing goal is mapped into the contract envelope.
 
 Traceability: FR-043; `api-contract.md` §3.2–3.3.
 

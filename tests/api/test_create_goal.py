@@ -4,9 +4,6 @@ import sqlite3
 import uuid
 
 import pytest
-from fastapi.testclient import TestClient
-
-from siddhi.bootstrap.app import create_app
 
 UNKNOWN_BY_DEFAULT = [
     "description",
@@ -18,12 +15,6 @@ UNKNOWN_BY_DEFAULT = [
     "assumptions",
     "risks",
 ]
-
-
-@pytest.fixture
-def client(db_path):
-    with TestClient(create_app(db_path)) as test_client:
-        yield test_client
 
 
 def rows(db_path, sql, parameters=()):

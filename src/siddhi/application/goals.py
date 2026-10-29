@@ -1,11 +1,13 @@
 """Goal operations. Ports are declared here; adapters implement them."""
 
+import base64
+import json
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from typing import Protocol
 from uuid import uuid4
 
-from siddhi.domain.goal import Goal, validate_new_goal
+from siddhi.domain.goal import Goal, InvalidGoal, validate_new_goal
 
 # Every field the owner can supply at creation, in contract order.
 SUPPLIABLE_FIELDS = (
@@ -21,9 +23,33 @@ SUPPLIABLE_FIELDS = (
     "risks",
 )
 
+LIST_STATUSES = ("active", "archived", "all")
+DEFAULT_LIMIT = 25
+MAX_LIMIT = 100
+
 
 class GoalRepository(Protocol):
     def create(self, goal: Goal, changed_fields: list[str]) -> None: ...
+
+    def get(self, goal_id: str) -> Goal | None: ...
+
+    def list_page(
+        self, status: str, limit: int, after: tuple[str, str] | None
+    ) -> list[Goal]: ...
+
+
+class GoalNotFound(Exception):
+    """No goal uses the requested identifier."""
+
+
+@dataclass(frozen=True)
+class GoalPage:
+    items: list[Goal]
+    next_cursor: str | None
+
+    @property
+    def has_more(self) -> bool:
+        return self.next_cursor is not None
 
 
 @dataclass(frozen=True)
@@ -71,3 +97,44 @@ def create_goal(repository: GoalRepository, request: NewGoal) -> Goal:
 
 def utc_now() -> str:
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def get_goal(repository: GoalRepository, goal_id: str) -> Goal:
+    goal = repository.get(goal_id)
+    if goal is None:
+        raise GoalNotFound(goal_id)
+    return goal
+
+
+def list_goals(
+    repository: GoalRepository,
+    status: str = "active",
+    limit: int = DEFAULT_LIMIT,
+    cursor: str | None = None,
+) -> GoalPage:
+    """One bounded page, ordered created_at DESC then id ASC."""
+    if status not in LIST_STATUSES:
+        raise InvalidGoal("status", f"status must be one of {', '.join(LIST_STATUSES)}")
+    if not 1 <= limit <= MAX_LIMIT:
+        raise InvalidGoal("limit", f"limit must be between 1 and {MAX_LIMIT}")
+    after = decode_cursor(cursor) if cursor is not None else None
+    rows = repository.list_page(status, limit + 1, after)
+    items = rows[:limit]
+    return GoalPage(
+        items=items, next_cursor=encode_cursor(items[-1]) if len(rows) > limit else None
+    )
+
+
+def encode_cursor(goal: Goal) -> str:
+    """The last row's sort key, opaque to clients (api-contract 3.2)."""
+    key = json.dumps({"created_at": goal.created_at, "id": goal.id}, separators=(",", ":"))
+    return base64.urlsafe_b64encode(key.encode()).decode().rstrip("=")
+
+
+def decode_cursor(cursor: str) -> tuple[str, str]:
+    try:
+        padded = cursor + "=" * (-len(cursor) % 4)
+        key = json.loads(base64.urlsafe_b64decode(padded))
+        return str(key["created_at"]), str(key["id"])
+    except (ValueError, KeyError, TypeError):
+        raise InvalidGoal("cursor", "cursor is not valid") from None

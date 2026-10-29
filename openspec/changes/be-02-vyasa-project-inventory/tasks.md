@@ -124,10 +124,19 @@ Vyasa failure*.
 
 ## Slice 5: Verification and closeout
 
-- [ ] 6.1 Run the full suite with `.venv/Scripts/python -m pytest -q`; record counts and
+- [x] 6.1 Run the full suite with `.venv/Scripts/python -m pytest -q`; record counts and
       warnings.
-- [ ] 6.2 Run one manual smoke refresh against the real Vyasa MCP executable; record
+      Evidence: 111 passed, 1 warning (`StarletteDeprecationWarning`: `httpx` with
+      `starlette.testclient` is deprecated in the installed environment).
+- [x] 6.2 Run one manual smoke refresh against the real Vyasa MCP executable; record
       counts, freshness and a project read. Keep the path out of the repository.
+      Evidence (2026-10-29, script outside the repository, temporary database):
+      first refresh `completed`, 74 added, 0 updated/removed/unchanged, `freshness`
+      `current`, `index_version` `"11"`; page of 3 returned `AgentNoir`, `Amsha`,
+      `Bodha` with `has_more` true; one project read returned its native 32-hex id,
+      `active`, `resolved`, `bitbucket`, `Python`; a second refresh was 74 unchanged.
+      The smoke run found one real defect: Vyasa sends `index_version` as a number, so
+      the adapter now keeps a numeric scalar as text (test added).
 - [ ] 6.3 Run `openspec validate be-02-vyasa-project-inventory` and the delta view.
 - [ ] 6.4 Review against the contract with `code-reviewer`; security pass with
       `code-review-security` and `secrets-scan`; no dependency change, so no SCA run.

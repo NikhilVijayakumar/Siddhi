@@ -253,5 +253,8 @@ def _labels(item: dict, key: str) -> tuple[str, ...]:
 
 
 def _optional_text(meta: dict, key: str, fallback: str | None) -> str | None:
+    """Keep a source scalar as text; a missing or unusable value keeps the fallback."""
     value = meta.get(key, fallback)
-    return value if isinstance(value, str) else None
+    if isinstance(value, bool) or not isinstance(value, (str, int)):
+        return None
+    return str(value)

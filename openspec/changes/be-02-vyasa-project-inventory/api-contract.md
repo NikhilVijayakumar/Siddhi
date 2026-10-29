@@ -49,7 +49,8 @@ Response `200`:
 `counts.added` + `updated` + `removed` + `unchanged` describe the transition from the
 previous current view to this one. `projects_total` is the number of projects in the
 completed read and equals added + updated + unchanged. `index_version` and `freshness`
-are the source's values, `null` when the source did not supply them.
+are the source's values, `null` when the source did not supply them; `index_version`
+is normalized to text (the source may send a number).
 
 Errors: `503 unavailable` with code `source_unavailable` when the source fails
 (`details` carries `[{"run_id": ..., "failure": "<category>"}]`), or code

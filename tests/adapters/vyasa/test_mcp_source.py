@@ -70,6 +70,9 @@ def answer(message):
     else:
         payload = envelope([], {"limit": 100, "next_cursor": None, "has_more": False})
     result = {"isError": False, "content": [{"type": "text", "text": json.dumps(payload)}]}
+    if scenario == "numeric_version":
+        payload["meta"]["index_version"] = 11
+        result["content"][0]["text"] = json.dumps(payload)
     if scenario != "text_only":
         result["structuredContent"] = payload
     return result
@@ -140,6 +143,12 @@ def test_an_empty_answer_is_a_valid_empty_inventory(command):
     inventory = VyasaMcpSource(command("empty")).fetch_inventory()
 
     assert inventory.projects == []
+
+
+def test_a_numeric_index_version_is_kept_as_text(command):
+    inventory = VyasaMcpSource(command("numeric_version")).fetch_inventory()
+
+    assert inventory.index_version == "11"
 
 
 def test_the_process_is_closed_after_a_read(command, tmp_path):

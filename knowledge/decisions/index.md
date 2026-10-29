@@ -19,3 +19,4 @@ ambiguous historical numbering.
 - [Versioned history and migrations](versioned-history-and-migrations.md) — proposed compatibility and storage evolution discipline.
 - [Proportionate background execution](proportionate-background-execution.md) — proposed workload-driven orchestration.
 - [Outcomes without time logging](outcomes-without-time-logging.md) — established avoidance of mandatory timesheets.
+- [Vyasa MCP inventory interface](vyasa-mcp-inventory-interface.md) — proposed first inventory transport behind a replaceable adapter.

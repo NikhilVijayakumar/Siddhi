@@ -14,10 +14,11 @@ assessments, and decisions. Reusing an inventory avoids building a second projec
 scanner merely to discover the same repositories. Deeper evidence collection is
 a separately scoped source capability, not a hidden side effect of inventory access.
 
-The actual Vyasa interface has **not been inspected or verified** here. No endpoint,
-tool name, database field, identifier guarantee, or response schema is established.
-The following describes a proposed Siddhi-facing logical boundary. See
-[Vyasa contract uncertainty](../technologies/vyasa-contract-direction.md).
+The Vyasa interface available on this machine was inspected read-only on 2026-10-29:
+a local MCP server over stdio, exposing read-only tools backed by a local index. That
+observation covers one deployment and one index version, not a compatibility
+commitment for other deployments. See
+[Vyasa contract direction](../technologies/vyasa-contract-direction.md).
 
 # Adapter and transport choices
 
@@ -32,6 +33,37 @@ rescan a workspace. Inventory reading, selected-project retrieval, and triggerin
 an upstream rescan are separate capabilities. Targeted rescans, history queries,
 incremental notifications, detailed field evidence, and filtering are possible
 extensions only if the real source exposes them and their cost is authorized.
+
+# Observed Vyasa MCP surface
+
+The interface inspected on 2026-10-29 is a stdio MCP server whose tools are
+read-only and answer from an existing local index without scanning. Inventory
+access uses three tools:
+
+| Tool | Answer |
+|---|---|
+| `search_projects` | One page of project summaries, with filters and an opaque cursor |
+| `get_project` | One project's identity and aliases, checkouts, remote, languages, markers, frameworks |
+| `get_index_status` | Freshness, the latest scan run, and counts by project state |
+
+Each answer is JSON carried as tool-result text with `schema_version` `"1"` and a
+`data` object; inventory answers also carry `meta` with `generated_at`,
+`index_version`, and `freshness` (`current`, `stale`, `partial`, `unknown`).
+Failure is a tool result with `isError: true` and a JSON `error` object carrying
+`code` and `message`; the codes seen are `unavailable` (no index) and
+`internal_error`. Every observed tool is annotated read-only and never rescans.
+
+A project summary carries `project_id` (32 hexadecimal characters), `display_name`,
+`state` (`active`, `missing`, `inaccessible`), `identity_status` (`resolved`,
+`provisional`, `ambiguous`), `providers`, `has_open_candidates`, `matched`, and
+`languages`; a page carries `limit`, `next_cursor`, and `has_more`. `get_project`
+adds aliases, checkouts with their remote status, and per-group `status` plus
+`observed_at`. `get_index_status` reports the latest scan run with `status`,
+`finished_at`, and counts, plus project counts by state.
+
+A `missing` or `inaccessible` project state is a source claim about a known
+project, not evidence that the project was deleted. Deletion can only be
+established from a complete observation whose scope includes the project.
 
 # Logical information groups
 
@@ -126,14 +158,16 @@ external AI disclosure.
 Representative real-source fixtures are needed for capabilities, complete/partial
 and empty/failed results, identity and origin behavior, optional metadata, unknown
 fields, and field provenance. Repeat, rename, relocation, access restriction,
-format-change, persistence, and recovery cases are especially important. A logical
-contract fixture is not evidence that an upstream service conforms to it.
+format-change, persistence, and recovery cases are especially important. One
+inspected deployment and one index version are not a compatibility guarantee.
 
-The unresolved contract includes transport/authentication; native IDs and their
-scope; actual inventory fields; pagination/filter semantics; scan completeness,
-timestamps and per-field provenance; targeted reads/rescans; metadata inference
-classification; restricted-project handling; upstream history; and supported versions.
-No human acceptance or real Vyasa compatibility is asserted by this draft.
+The observed surface leaves these contract questions open: authentication and
+permission behavior beyond a local stdio process; the protocol version and
+`schema_version` change policy; cursor stability guarantees; the meaning of
+per-checkout `status` and `observed_at` during partial or interrupted scans;
+targeted rescans and upstream history; and how a project keeps identity across
+renames, transfers, and clone moves. No human acceptance or general Vyasa
+compatibility is asserted by this draft.
 
 Related: [source adapters](source-adapters.md),
 [ingestion and snapshots](ingestion-and-snapshots.md),

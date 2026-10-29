@@ -220,6 +220,24 @@ def revise_goal(
     return revised
 
 
+def archive_goal(repository: GoalRepository, goal_id: str) -> Goal:
+    """Retire the goal from default listings, keeping its rows and history."""
+    goal = get_goal(repository, goal_id)
+    if goal.status == "archived":
+        return goal
+    now = utc_now()
+    archived = replace(
+        goal,
+        status="archived",
+        archived_at=now,
+        updated_at=now,
+        revision=goal.revision + 1,
+    )
+    if not repository.revise(archived, ["status"], {"status": goal.status}, None):
+        raise GoalConflict(get_goal(repository, goal_id).revision)
+    return archived
+
+
 def list_revisions(
     repository: GoalRepository,
     goal_id: str,

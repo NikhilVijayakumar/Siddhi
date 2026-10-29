@@ -16,6 +16,7 @@ from siddhi.application.goals import (
     GoalPage,
     NewGoal,
     RevisionPage,
+    archive_goal,
     create_goal,
     get_goal,
     list_goals,
@@ -135,6 +136,11 @@ def patch_goal(goal_id: str, body: PatchGoalRequest, request: Request) -> GoalRe
         request.app.state.goals, goal_id, supplied, reason, expected_revision
     )
     return GoalResponse.model_validate(revised)
+
+
+@router.post("/goals/{goal_id}/archive", response_model=GoalResponse)
+def post_archive(goal_id: str, request: Request) -> GoalResponse:
+    return GoalResponse.model_validate(archive_goal(request.app.state.goals, goal_id))
 
 
 @router.get("/goals/{goal_id}/revisions", response_model=RevisionPageResponse)

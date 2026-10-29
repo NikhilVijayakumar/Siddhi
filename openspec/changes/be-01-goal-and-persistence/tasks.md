@@ -160,12 +160,17 @@ Traceability: FR-006, NFR-007, NFR-014, NFR-016; `data-model.md`, `persistence.m
 
 Covers: *Archive a goal without deleting it*.
 
-- [ ] 6.1 Failing tests: archiving sets status and `archived_at`, appends one revision,
+- [x] 6.1 Failing tests: archiving sets status and `archived_at`, appends one revision,
       and removes the goal from the default listing; the goal and its revisions remain
       retrievable; a second archive returns `200` and creates no revision; no row is
       deleted.
-- [ ] 6.2 Implement `POST /goals/{goal_id}/archive` idempotently.
-- [ ] 6.3 Tests pass.
+      `tests/api/test_archive_goal.py` (5 tests, confirmed failing first with `405`).
+- [x] 6.2 Implement `POST /goals/{goal_id}/archive` idempotently.
+      `archive_goal` returns an already-archived goal untouched and otherwise reuses the
+      same guarded `repository.revise`, so archival inherits the lost-update check and
+      the `changed_fields: ["status"]` revision.
+- [x] 6.3 Tests pass.
+      `.venv/Scripts/python -m pytest` → 53 passed.
 
 Traceability: FR-001; `data-model.md`.
 

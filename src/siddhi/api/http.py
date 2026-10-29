@@ -123,9 +123,6 @@ class ProjectEvidenceResponse(BaseModel):
     project_id: str
     freshness: str | None
     checkouts: list[dict[str, object]] | None = None
-    languages: list[str] | None = None
-    markers: list[str] | None = None
-    frameworks: list[str] | None = None
 
 
 class RefreshReportResponse(BaseModel):

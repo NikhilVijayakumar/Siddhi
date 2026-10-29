@@ -38,23 +38,27 @@ Response `200`:
   "freshness": "current",
   "checkouts": [
     {
-      "remote": "https://github.com/owner/repo",
-      "status": "clean",
-      "observed_at": "2026-10-29T12:00:00Z"
+      "state": "active",
+      "kind": "repository",
+      "markers": { "status": "complete", "observed_at": "2026-10-28T19:08:42.479298+00:00" },
+      "git": { "remote": { "provider": "bitbucket", "status": "origin" } },
+      "remote": { "provider": "bitbucket", "host": "bitbucket.org", "status": "origin" },
+      "languages": { "status": "complete", "observed_at": "2026-10-28T19:08:42.479298+00:00" },
+      "composition": { "status": "complete", " observed_at": "2026-10-28T19:08:42.479298+00:00" },
+      "frameworks": { "status": "complete", " observed_at": "2026-10-28T19:08:42.479298+00:00" },
+      "first_seen_at": "2026-10-28T19:05:43.569720+00:00",
+      "last_seen_at": "2026-10-28T19:08:42.479298+00:00"
     }
-  ],
-  "languages": ["Python"],
-  "markers": ["implementation:complete"],
-  "frameworks": ["fastapi"]
+  ]
 }
 ```
 
-- `checkouts` is the source's list of checkout observations; each entry carries what the
-  source supplied (for example `remote`, `status`, `observed_at`). An absent optional field
-  is absent, not zero and not an error; the caller distinguishes an empty list from a missing
-  optional group only through the presence of the key.
-- Optional groups absent from the source stay absent from the response rather than becoming
-  empty defaults. Missing required identity fields are a source failure.
+- `checkouts` is the source's list of checkout observations for the project; group-level
+  observations (markers, git, remote, languages, composition, frameworks) and the per-checkout
+  observation times ride inside each entry. An absent optional group stays absent rather than
+  becoming an empty default; missing required identity fields are a source failure.
+- The response carries the source's own group structure; it does not flatten or invent
+  checkout-level fields the source did not supply.
 
 Errors: `503 unavailable` with code `source_unavailable` when the source fails or cannot
 retrieve the project; the source's failure category is carried in `details` as

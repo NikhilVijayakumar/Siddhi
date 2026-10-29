@@ -13,14 +13,18 @@ def detail(project_id: str = PROJECT_ID) -> dict:
         "project_id": project_id,
         "checkouts": [
             {
-                "remote": "https://github.com/owner/repo",
-                "status": "clean",
-                "observed_at": "2026-10-29T12:00:00Z",
+                "state": "active",
+                "kind": "repository",
+                "markers": {"status": "complete", "observed_at": "2026-10-28T19:08:42.479298+00:00"},
+                "git": {"remote": {"provider": "bitbucket", "status": "origin"}},
+                "remote": {"provider": "bitbucket", "host": "bitbucket.org", "status": "origin"},
+                "languages": {"status": "complete", "observed_at": "2026-10-28T19:08:42.479298+00:00"},
+                "composition": {"status": "complete", "observed_at": "2026-10-28T19:08:42.479298+00:00"},
+                "frameworks": {"status": "complete", "observed_at": "2026-10-28T19:08:42.479298+00:00"},
+                "first_seen_at": "2026-10-28T19:05:43.569720+00:00",
+                "last_seen_at": "2026-10-28T19:08:42.479298+00:00",
             }
         ],
-        "languages": ["Python"],
-        "markers": ["implementation:complete"],
-        "frameworks": ["fastapi"],
     }
 
 
@@ -40,14 +44,18 @@ def test_a_stored_project_returns_checkout_evidence(make_client):
         "freshness": "current",
         "checkouts": [
             {
-                "remote": "https://github.com/owner/repo",
-                "status": "clean",
-                "observed_at": "2026-10-29T12:00:00Z",
+                "state": "active",
+                "kind": "repository",
+                "markers": {"status": "complete", "observed_at": "2026-10-28T19:08:42.479298+00:00"},
+                "git": {"remote": {"provider": "bitbucket", "status": "origin"}},
+                "remote": {"provider": "bitbucket", "host": "bitbucket.org", "status": "origin"},
+                "languages": {"status": "complete", "observed_at": "2026-10-28T19:08:42.479298+00:00"},
+                "composition": {"status": "complete", "observed_at": "2026-10-28T19:08:42.479298+00:00"},
+                "frameworks": {"status": "complete", "observed_at": "2026-10-28T19:08:42.479298+00:00"},
+                "first_seen_at": "2026-10-28T19:05:43.569720+00:00",
+                "last_seen_at": "2026-10-28T19:08:42.479298+00:00",
             }
         ],
-        "languages": ["Python"],
-        "markers": ["implementation:complete"],
-        "frameworks": ["fastapi"],
     }
 
 

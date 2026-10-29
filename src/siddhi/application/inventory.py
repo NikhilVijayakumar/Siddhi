@@ -151,19 +151,7 @@ def get_project_evidence(
         "project_id": project_id,
         "freshness": project.freshness,
         "checkouts": checkouts,
-        "languages": _text_list(detail, "languages"),
-        "markers": _text_list(detail, "markers"),
-        "frameworks": _text_list(detail, "frameworks"),
     }
-
-
-def _text_list(detail: dict, key: str) -> list[str] | None:
-    value = detail.get(key)
-    if value is None:
-        return None
-    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
-        raise SourceError("unsupported_contract", f"the source detail has an unusable {key}")
-    return list(value)
 
 
 def list_projects(

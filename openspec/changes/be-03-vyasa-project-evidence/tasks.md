@@ -27,7 +27,9 @@
       Red evidence: 4 failed (route/module did not exist yet).
 - [x] 2.2 Implement application evidence retrieval and the HTTP route.
       Evidence: `tests/api/test_project_evidence.py` → 4 passed; full suite → 129 passed,
-      1 warning.
+      1 warning. The live source probe showed the real `get_project` shape — checkout groups
+      carrying markers/git/remote/languages/composition/frameworks with per-group status and
+      observation times — and the response was corrected to mirror it instead of flattening.
 
 ## Slice 3: Verification and closeout
 

@@ -20,8 +20,9 @@ session and exposes it through `GET /projects/{project_id}/evidence`.
   retrieval and reuses the bounded session, handshake, message cap and timeout.
 - The adapter validates the answer: `schema_version` must be `"1"`, the returned
   `project_id` must equal the requested identifier, required identity fields must be usable.
-- The application shapes the evidence response from the validated answer and maps failures to
-  the existing source error vocabulary; targeted reads do not write run rows.
+- The evidence response carries the source's checkout groups as the source shaped them, plus
+  the freshness of the stored observation that grounds the retrieval; targeted reads do not
+  write run rows.
 - Storage of checkout evidence is deliberately deferred; the published inventory stays the
   stored current view.
 
@@ -31,6 +32,8 @@ session and exposes it through `GET /projects/{project_id}/evidence`.
 - Unsupported capabilities fail loudly rather than behaving like an empty success.
 - Failure semantics match the inventory change, so a failed evidence read reuses the
   `unavailable` / source category mapping without inventing categories.
+- The observed source nests group observations (languages, frameworks, markers) inside
+  checkout entries; the response mirrors that shape instead of flattening.
 
 ## Alternatives considered
 

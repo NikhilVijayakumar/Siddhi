@@ -20,6 +20,7 @@ SUPPORTED_SCHEMA = "1"
 PAGE_LIMIT = 100
 MAX_PAGES = 100
 MAX_PROJECTS = 10_000
+MAX_MESSAGE_BYTES = 1_000_000
 CLIENT_INFO = {"name": "siddhi", "version": "0.1.0"}
 
 
@@ -52,11 +53,16 @@ class VyasaMcpSource:
                 page = data.get("page")
                 if not isinstance(page, dict):
                     raise SourceError("unsupported_contract", "the source answer has no page")
-                if not page.get("has_more"):
+                has_more = page.get("has_more")
+                if has_more is False:
                     return Inventory(
                         projects=projects,
                         index_version=index_version,
                         freshness=freshness,
+                    )
+                if has_more is not True:
+                    raise SourceError(
+                        "unsupported_contract", "the source answer has no page state"
                     )
                 cursor = page.get("next_cursor")
                 if not isinstance(cursor, str) or not cursor or cursor in seen_cursors:
@@ -89,15 +95,20 @@ class _Session:
         except OSError:
             raise SourceError("connection_failed", "the source process could not start") from None
         threading.Thread(target=self._read_stdout, daemon=True).start()
-        result = self._request(
-            "initialize",
-            {
-                "protocolVersion": PROTOCOL_VERSION,
-                "capabilities": {},
-                "clientInfo": CLIENT_INFO,
-            },
-        )
+        try:
+            result = self._request(
+                "initialize",
+                {
+                    "protocolVersion": PROTOCOL_VERSION,
+                    "capabilities": {},
+                    "clientInfo": CLIENT_INFO,
+                },
+            )
+        except BaseException:
+            self._close()
+            raise
         if not isinstance(result, dict) or not isinstance(result.get("protocolVersion"), str):
+            self._close()
             raise SourceError("protocol_error", "the source did not complete the handshake")
         self._send({"jsonrpc": "2.0", "method": "notifications/initialized"})
         return self
@@ -110,7 +121,7 @@ class _Session:
         if not isinstance(result, dict):
             raise SourceError("protocol_error", "the tool result is not an object")
         if result.get("isError"):
-            raise SourceError("tool_error", f"the {name} tool reported an error")
+            raise SourceError(_error_category(result), f"the {name} tool reported an error")
         payload = result.get("structuredContent")
         if not isinstance(payload, dict):
             payload = _text_payload(result)
@@ -165,7 +176,14 @@ class _Session:
         if process is None or process.stdout is None:
             self._messages.put(None)
             return
-        for line in process.stdout:
+        while True:
+            line = process.stdout.readline(MAX_MESSAGE_BYTES)
+            if not line:
+                self._messages.put(None)
+                return
+            if len(line) >= MAX_MESSAGE_BYTES and not line.endswith("\n"):
+                self._messages.put(_MALFORMED)
+                return
             line = line.strip()
             if not line:
                 continue
@@ -173,7 +191,6 @@ class _Session:
                 self._messages.put(json.loads(line))
             except ValueError:
                 self._messages.put(_MALFORMED)
-        self._messages.put(None)
 
     def _exited(self) -> bool:
         return self._process is not None and self._process.poll() is not None
@@ -199,6 +216,22 @@ class _Session:
 
 
 _MALFORMED = object()
+
+
+def _error_category(result: dict) -> str:
+    """A tool-level `unavailable` is a source outage, not a contract problem."""
+    payload = result.get("structuredContent")
+    if not isinstance(payload, dict):
+        content = result.get("content")
+        first = content[0] if isinstance(content, list) and content else None
+        text = first.get("text") if isinstance(first, dict) else None
+        try:
+            payload = json.loads(text) if isinstance(text, str) else None
+        except ValueError:
+            payload = None
+    error = payload.get("error") if isinstance(payload, dict) else None
+    code = error.get("code") if isinstance(error, dict) else None
+    return "unavailable" if code == "unavailable" else "tool_error"
 
 
 def _text_payload(result: dict) -> dict:
@@ -253,8 +286,8 @@ def _labels(item: dict, key: str) -> tuple[str, ...]:
 
 
 def _optional_text(meta: dict, key: str, fallback: str | None) -> str | None:
-    """Keep a source scalar as text; a missing or unusable value keeps the fallback."""
+    """Keep a usable source scalar as text; otherwise keep the fallback."""
     value = meta.get(key, fallback)
     if isinstance(value, bool) or not isinstance(value, (str, int)):
-        return None
+        return fallback
     return str(value)

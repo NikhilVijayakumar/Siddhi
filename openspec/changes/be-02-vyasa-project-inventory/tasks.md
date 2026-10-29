@@ -1,7 +1,7 @@
 # Implementation Tasks: Vyasa project inventory
 
 - **OpenSpec Change ID:** `be-02-vyasa-project-inventory`
-- **Status:** In Progress (prerequisites and slice 1 complete)
+- **Status:** In Progress (implementation complete; closeout pending)
 - **Related artifacts:** `proposal.md`, `specs/`, `api-contract.md`, `design.md`, `adr.md`
 
 ## Planning rules applied here
@@ -41,7 +41,8 @@ refresh fails*, *Local portfolio work survives Vyasa failure* (refresh half),
       `first_observed_at`; changed fields count as updated; a source failure returns
       `503 source_unavailable` with run and failure category while stored projects and
       goals stay unchanged; no configured source returns `503 source_not_configured`
-      with no run row; a failure after the first page publishes nothing.
+      with no run row; a later failure publishes nothing new while the previous
+      completed view stays served.
       Red evidence: `tests/api/test_refresh_inventory.py` failed collection with
       `ModuleNotFoundError: siddhi.domain.project`, then 4 of 7 failed with
       `database_unavailable` (run row inserted after the rows that reference it).

@@ -45,15 +45,18 @@ def envelope(projects, page, version="1"):
 
 def answer(message):
     arguments = message["params"]["arguments"]
-    if scenario == "tool_error":
+    if scenario in ("tool_error", "tool_unavailable"):
+        code = "unavailable" if scenario == "tool_unavailable" else "internal_error"
         return {
             "isError": True,
             "content": [
-                {"type": "text", "text": json.dumps({"error": {"code": "unavailable", "message": "no index"}})}
+                {"type": "text", "text": json.dumps({"error": {"code": code, "message": "no index"}})}
             ],
         }
     if scenario == "unsupported":
         payload = envelope([], {"limit": 100, "next_cursor": None, "has_more": False}, version="2")
+    elif scenario == "no_has_more":
+        payload = envelope([], {"limit": 100, "next_cursor": None})
     elif scenario == "repeat_cursor":
         payload = envelope(
             [project("a", "Alpha")], {"limit": 100, "next_cursor": "same", "has_more": True}
@@ -85,6 +88,8 @@ try:
             continue
         method = message.get("method")
         if method == "initialize":
+            if scenario == "silent_init":
+                continue
             send(
                 {
                     "jsonrpc": "2.0",
@@ -97,7 +102,10 @@ try:
                 }
             )
         elif method == "tools/call":
-            if scenario != "silent":
+            if scenario == "oversized":
+                sys.stdout.write("x" * 1050000 + "\\n")
+                sys.stdout.flush()
+            elif scenario != "silent":
                 send({"jsonrpc": "2.0", "id": message["id"], "result": answer(message)})
         else:
             send(
@@ -157,6 +165,37 @@ def test_the_process_is_closed_after_a_read(command, tmp_path):
     VyasaMcpSource(command("empty", str(marker))).fetch_inventory()
 
     assert marker.read_text(encoding="utf-8") == "closed"
+
+
+def test_a_failed_handshake_closes_the_process(command, tmp_path):
+    marker = tmp_path / "closed.txt"
+
+    with pytest.raises(SourceError) as failed:
+        VyasaMcpSource(command("silent_init", str(marker)), timeout=0.2).fetch_inventory()
+
+    assert failed.value.category == "timeout"
+    assert marker.read_text(encoding="utf-8") == "closed"
+
+
+def test_a_page_without_a_page_state_is_unsupported(command):
+    with pytest.raises(SourceError) as failed:
+        VyasaMcpSource(command("no_has_more")).fetch_inventory()
+
+    assert failed.value.category == "unsupported_contract"
+
+
+def test_a_tool_level_unavailable_is_an_outage(command):
+    with pytest.raises(SourceError) as failed:
+        VyasaMcpSource(command("tool_unavailable")).fetch_inventory()
+
+    assert failed.value.category == "unavailable"
+
+
+def test_an_oversized_message_is_refused_without_buffering_it(command):
+    with pytest.raises(SourceError) as failed:
+        VyasaMcpSource(command("oversized")).fetch_inventory()
+
+    assert failed.value.category == "protocol_error"
 
 
 def test_a_tool_error_stays_a_category_without_the_source_message(command):

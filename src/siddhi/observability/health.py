@@ -22,7 +22,11 @@ def health_report(db_path: Path, source_configured: bool = False) -> tuple[dict,
                 "checks": {
                     "service": {"status": "ok"},
                     "database": {"status": "unavailable"},
-                    "integrations": {"status": "unavailable", "source": "vyasa"},
+                    "integrations": {
+                        "status": "unavailable",
+                        "source": "vyasa",
+                        "last_run": None,
+                    },
                 },
             },
             503,
@@ -43,7 +47,7 @@ def health_report(db_path: Path, source_configured: bool = False) -> tuple[dict,
 
 def _integrations(db_path: Path, source_configured: bool) -> dict:
     if not source_configured:
-        return {"status": "not_configured", "source": "vyasa"}
+        return {"status": "not_configured", "source": "vyasa", "last_run": None}
     run = SqliteProjectRepository(db_path).latest_run()
     return {
         "status": "configured",

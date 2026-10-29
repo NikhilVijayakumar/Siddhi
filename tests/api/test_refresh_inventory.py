@@ -102,8 +102,9 @@ def test_a_failed_refresh_keeps_inventory_and_goals_and_records_the_failure(make
         assert failed.status_code == 503, failed.text
         error = failed.json()["error"]
         assert (error["category"], error["code"]) == ("unavailable", "source_unavailable")
+        failed_run = rows(db_path, "SELECT id FROM ingestion_runs WHERE outcome = 'failed'")
         assert error["details"] == [
-            {"run_id": error["details"][0]["run_id"], "failure": "connection_failed"}
+            {"run_id": failed_run[0]["id"], "failure": "connection_failed"}
         ]
         assert "secret" not in failed.text
         assert [item["id"] for item in client.get("/goals").json()["items"]] == [goal["id"]]
@@ -112,7 +113,7 @@ def test_a_failed_refresh_keeps_inventory_and_goals_and_records_the_failure(make
     runs = rows(
         db_path,
         "SELECT outcome, failure, added, updated, removed, unchanged"
-        " FROM ingestion_runs ORDER BY started_at, outcome",
+        " FROM ingestion_runs ORDER BY rowid",
     )
     assert [row["outcome"] for row in runs] == ["completed", "failed"]
     assert runs[1] == {
@@ -123,6 +124,16 @@ def test_a_failed_refresh_keeps_inventory_and_goals_and_records_the_failure(make
         "removed": 0,
         "unchanged": 0,
     }
+
+
+def test_a_refresh_body_is_refused_instead_of_ignored(make_client):
+    with make_client(FakeSource(inventory())) as client:
+        response = client.post(REFRESH, json={"unexpected": 1})
+
+    assert response.status_code == 422, response.text
+    error = response.json()["error"]
+    assert (error["category"], error["code"]) == ("validation", "invalid_field")
+    assert error["field"] == "unexpected"
 
 
 def test_refresh_without_a_configured_source_reports_it_and_writes_no_run(make_client, db_path):

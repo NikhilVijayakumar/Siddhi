@@ -80,7 +80,7 @@ def _is_loopback(host: str) -> bool:
 
 
 def _command(value: object) -> str | None:
-    """An executable path; empty means the integration is off, whitespace is a mistake."""
+    """A path kept verbatim; unset turns the integration off, blank is a mistake."""
     if value is None:
         return None
     command = str(value).strip()

@@ -11,6 +11,8 @@ class FakeSource:
     """
 
     def __init__(self, *results: Inventory | Exception) -> None:
+        if not results:
+            raise ValueError("FakeSource needs at least one result")
         self._results = list(results)
         self.calls = 0
 

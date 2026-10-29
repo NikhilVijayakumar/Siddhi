@@ -1,11 +1,19 @@
 """Project reads: bounded pages, source context, and no source access."""
 
+import base64
+import json
+
 import pytest
 
 from tests.fakes import FakeSource, inventory, project
 
 REFRESH = "/ingestion/vyasa/refresh"
 PROJECT_ID = "e620f8eda2274e9397a3f7430f22c012"
+NON_STRING_CURSOR = (
+    base64.urlsafe_b64encode(json.dumps({"display_name": 1, "project_id": None}).encode())
+    .decode()
+    .rstrip("=")
+)
 
 
 def test_a_project_payload_carries_observation_context(make_client):
@@ -51,6 +59,26 @@ def test_projects_are_listed_by_name_and_paged_without_duplicates(make_client):
     assert second["has_more"] is False
     assert second["next_cursor"] is None
     assert len({item["project_id"] for item in first["items"] + second["items"]}) == 3
+
+
+def test_projects_with_the_same_name_are_paged_by_identifier(make_client):
+    source = FakeSource(
+        inventory(
+            project(project_id="b", display_name="Same"),
+            project(project_id="a", display_name="Same"),
+        )
+    )
+
+    with make_client(source) as client:
+        client.post(REFRESH)
+        first = client.get("/projects", params={"limit": 1}).json()
+        second = client.get(
+            "/projects", params={"limit": 1, "cursor": first["next_cursor"]}
+        ).json()
+
+    assert [item["project_id"] for item in first["items"]] == ["a"]
+    assert [item["project_id"] for item in second["items"]] == ["b"]
+    assert second["has_more"] is False
 
 
 def test_listing_filters_by_source_state(make_client):
@@ -124,6 +152,7 @@ def test_a_project_absent_from_a_completed_read_is_no_longer_served(make_client)
     [
         ({"state": "archived"}, "state"),
         ({"cursor": "not-a-cursor"}, "cursor"),
+        ({"cursor": NON_STRING_CURSOR}, "cursor"),
         ({"limit": 0}, "limit"),
     ],
 )

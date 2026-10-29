@@ -162,7 +162,8 @@ reported separately from the automated suite, together with its observed counts.
   no filter; a future filtered refresh must not reuse the removal path unchanged.
 - Run history grows without a retention rule; acceptable for a local single-user store
   until retention is decided.
-- A synchronous refresh blocks one HTTP request; bounded by page cap and timeout.
+- A synchronous refresh blocks one HTTP request; the page cap and a per-message
+  timeout bound the adapter, not the whole refresh.
 
 ## 10. Knowledge References
 

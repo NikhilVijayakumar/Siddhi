@@ -161,10 +161,11 @@ def encode_cursor(project: StoredProject) -> str:
 
 def decode_cursor(cursor: str) -> tuple[str, str]:
     key = _decode(cursor)
-    try:
-        return str(key["display_name"]), str(key["project_id"])
-    except KeyError:
-        raise InvalidProject("cursor", "cursor is not valid") from None
+    display_name = key.get("display_name")
+    project_id = key.get("project_id")
+    if not isinstance(display_name, str) or not isinstance(project_id, str):
+        raise InvalidProject("cursor", "cursor is not valid")
+    return display_name, project_id
 
 
 def _encode(payload: dict[str, object]) -> str:

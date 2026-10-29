@@ -28,6 +28,7 @@ from siddhi.application.goals import (
     revise_goal,
 )
 from siddhi.domain.goal import InvalidGoal
+from siddhi.domain.project import StoredProject
 from siddhi.observability.health import health_report
 from siddhi.observability.logging import log_event
 
@@ -109,6 +110,12 @@ class RevisionPageResponse(BaseModel):
     items: list[RevisionResponse]
     next_cursor: str | None
     has_more: bool
+
+
+class RefreshRequest(BaseModel):
+    """The refresh takes no request body; unknown fields are refused, not ignored."""
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class RefreshReportResponse(BaseModel):
@@ -201,7 +208,7 @@ def get_revisions(
 
 
 @router.post("/ingestion/vyasa/refresh", response_model=RefreshReportResponse)
-def post_refresh(request: Request) -> RefreshReportResponse:
+def post_refresh(request: Request, body: RefreshRequest | None = None) -> RefreshReportResponse:
     report = inventory.refresh_inventory(
         request.app.state.projects, request.app.state.project_source
     )
@@ -238,7 +245,7 @@ def get_project(request: Request, project_id: str) -> ProjectResponse:
     return _project_response(inventory.get_project(request.app.state.projects, project_id))
 
 
-def _project_response(project) -> ProjectResponse:
+def _project_response(project: StoredProject) -> ProjectResponse:
     return ProjectResponse(
         project_id=project.project_id,
         display_name=project.display_name,

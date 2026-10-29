@@ -21,6 +21,7 @@ def test_health_reports_service_database_and_integrations(client):
     assert health["checks"]["integrations"] == {
         "status": "not_configured",
         "source": "vyasa",
+        "last_run": None,
     }
 
 

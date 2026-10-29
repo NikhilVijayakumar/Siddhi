@@ -18,8 +18,7 @@ Usage:
 Exit status is 0 when every check passes and 1 when any check fails. Standard
 library only, like ``scripts/sync_skills.py``. Paths are resolved relative to this
 file and every file is read as UTF-8, so the script runs from any clone on Linux,
-macOS, and Windows. ``scripts/smoke_team_schemas.py`` exercises each team schema end
-to end; this script checks the contract every change and schema must satisfy.
+macOS, and Windows. Release-time check only; not part of the per-change workflow.
 """
 
 from __future__ import annotations

@@ -87,8 +87,7 @@ context: |
     ones there first, then reference them from the artifact.
   - Knowledge stands alone: concepts never link to or mention
     docs/requirements/, OpenSpec changes, or
-    change-specific code (python3 scripts/verify_knowledge.py
-    enforces this). They state general truths, not requirements.
+    change-specific code. They state general truths, not requirements.
   - Ownership: docs/requirements/ owns requirements; knowledge/ owns
     product vision and roadmap, architecture, concepts, decisions,
     and practices; OpenSpec owns agreed behaviour and the
@@ -286,7 +285,7 @@ operations:
       - Use the neat-freak skill to reconcile documentation, agent instructions,
         and durable project knowledge with what was built.
       - Capture durable lessons in knowledge/ with the knowledge-first
-        skill; run python3 scripts/verify_knowledge.py.
+        skill.
       - Preserve the traceability between requirements, tasks, implementation,
         tests, and the archived change.
 githubCopilot:

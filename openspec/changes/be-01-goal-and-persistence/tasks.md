@@ -132,9 +132,7 @@ Traceability: FR-046, FR-049, FR-050, NFR-022, NFR-026; `security-and-privacy.md
       reported, not silently corrected.
 - [ ] 8.3 Run `openspec validate be-01-goal-and-persistence` and
       `openspec show be-01-goal-and-persistence --json --deltas-only`.
-- [ ] 8.4 Run `python scripts/verify_requirements.py`, `python scripts/verify_workflows.py`
-      and `python scripts/verify_knowledge.py`.
-- [ ] 8.5 Fill the verification record below with actual outcomes; report structural
+- [ ] 8.4 Fill the verification record below with actual outcomes; report structural
       checks separately from executed tests, and leave unavailable checks marked as such.
 
 Traceability: `knowledge/practices/testing-and-validation.md`;
@@ -149,9 +147,6 @@ Traceability: `knowledge/practices/testing-and-validation.md`;
 | Loopback and diagnostics checks | executed pytest suite | Not run | |
 | `openspec validate` | `openspec validate be-01-goal-and-persistence` | Not run | Structural |
 | Deltas | `openspec show be-01-goal-and-persistence --json --deltas-only` | Not run | Structural |
-| Requirement packages | `python scripts/verify_requirements.py` | Not run | Structural |
-| Workflow schemas | `python scripts/verify_workflows.py` | Not run | Structural |
-| Knowledge bundle | `python scripts/verify_knowledge.py` | Not run | Structural |
 
 ## Out of scope (deliberately not started)
 

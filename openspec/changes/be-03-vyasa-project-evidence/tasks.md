@@ -20,11 +20,14 @@
 
 ## Slice 2: Evidence read over HTTP
 
-- [ ] 2.1 Failing contract tests for `GET /projects/{project_id}/evidence`: stored
+- [x] 2.1 Failing contract tests for `GET /projects/{project_id}/evidence`: stored
       project returns checkout evidence; source failure maps to `503 source_unavailable`;
       source not configured returns `source_not_configured`; unknown stored identifier returns
       `404 project_not_found`.
-- [ ] 2.2 Implement application evidence retrieval and the HTTP route.
+      Red evidence: 4 failed (route/module did not exist yet).
+- [x] 2.2 Implement application evidence retrieval and the HTTP route.
+      Evidence: `tests/api/test_project_evidence.py` → 4 passed; full suite → 129 passed,
+      1 warning.
 
 ## Slice 3: Verification and closeout
 

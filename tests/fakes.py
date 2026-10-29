@@ -1,6 +1,6 @@
 """Test doubles for source adapters. The suite never starts Vyasa."""
 
-from siddhi.domain.project import Inventory, ProjectRecord
+from siddhi.domain.project import Inventory, ProjectRecord, SourceError
 
 
 class FakeSource:
@@ -10,16 +10,25 @@ class FakeSource:
     failures reach the application.
     """
 
-    def __init__(self, *results: Inventory | Exception) -> None:
+    def __init__(self, *results: Inventory | Exception, details: tuple[dict, ...] = ()) -> None:
         if not results:
             raise ValueError("FakeSource needs at least one result")
         self._results = list(results)
+        self._details = list(details)
         self.calls = 0
 
     def fetch_inventory(self) -> Inventory:
         index = min(self.calls, len(self._results) - 1)
         self.calls += 1
         result = self._results[index]
+        if isinstance(result, Exception):
+            raise result
+        return result
+
+    def get_project(self, project_id: str) -> dict:
+        if not self._details:
+            raise SourceError("unavailable", "no project detail was scripted")
+        result = self._details.pop(0)
         if isinstance(result, Exception):
             raise result
         return result

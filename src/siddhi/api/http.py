@@ -119,6 +119,15 @@ class RefreshRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class ProjectEvidenceResponse(BaseModel):
+    project_id: str
+    freshness: str | None
+    checkouts: list[dict[str, object]] | None = None
+    languages: list[str] | None = None
+    markers: list[str] | None = None
+    frameworks: list[str] | None = None
+
+
 class RefreshReportResponse(BaseModel):
     run_id: str
     source: str
@@ -244,6 +253,14 @@ def get_projects(
 @router.get("/projects/{project_id}", response_model=ProjectResponse)
 def get_project(request: Request, project_id: str) -> ProjectResponse:
     return _project_response(inventory.get_project(request.app.state.projects, project_id))
+
+
+@router.get("/projects/{project_id}/evidence", response_model=ProjectEvidenceResponse)
+def get_project_evidence(request: Request, project_id: str) -> ProjectEvidenceResponse:
+    evidence = inventory.get_project_evidence(
+        request.app.state.projects, request.app.state.project_source, project_id
+    )
+    return ProjectEvidenceResponse(**evidence)
 
 
 def _project_response(project: StoredProject) -> ProjectResponse:

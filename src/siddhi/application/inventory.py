@@ -22,6 +22,8 @@ LIST_STATES = ("active", "missing", "inaccessible", "all")
 class ProjectSource(Protocol):
     def fetch_inventory(self) -> Inventory: ...
 
+    def get_project(self, project_id: str) -> dict: ...
+
 
 class ProjectRepository(Protocol):
     def publish(
@@ -63,7 +65,7 @@ class SourceNotConfigured(Exception):
 class SourceUnavailable(Exception):
     """The source could not supply a usable observation; the run records why."""
 
-    def __init__(self, category: str, run_id: str) -> None:
+    def __init__(self, category: str, run_id: str | None = None) -> None:
         super().__init__(f"the source failed with category {category}")
         self.category = category
         self.run_id = run_id
@@ -125,6 +127,43 @@ def refresh_inventory(
         projects_total=len(inventory.projects),
         counts=counts,
     )
+
+
+def get_project_evidence(
+    repository: ProjectRepository, source: ProjectSource | None, project_id: str
+) -> dict:
+    """One stored project, one source retrieval, checkout-level evidence."""
+    project = repository.get(project_id)
+    if project is None:
+        raise ProjectNotFound(project_id)
+    if source is None:
+        raise SourceNotConfigured()
+    try:
+        detail = source.get_project(project_id)
+    except SourceError as exc:
+        raise SourceUnavailable(exc.category) from None
+    if not isinstance(detail, dict):
+        raise SourceError("unsupported_contract", "the source detail is not an object")
+    checkouts = detail.get("checkouts")
+    if checkouts is not None and not isinstance(checkouts, list):
+        raise SourceError("unsupported_contract", "the source detail has no checkouts")
+    return {
+        "project_id": project_id,
+        "freshness": project.freshness,
+        "checkouts": checkouts,
+        "languages": _text_list(detail, "languages"),
+        "markers": _text_list(detail, "markers"),
+        "frameworks": _text_list(detail, "frameworks"),
+    }
+
+
+def _text_list(detail: dict, key: str) -> list[str] | None:
+    value = detail.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+        raise SourceError("unsupported_contract", f"the source detail has an unusable {key}")
+    return list(value)
 
 
 def list_projects(

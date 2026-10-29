@@ -199,7 +199,7 @@ identifier; new values may appear in a category without a breaking change.
 
 ```sql
 CREATE TABLE schema_version (
-    version     INTEGER NOT NULL,
+    version     INTEGER PRIMARY KEY,
     applied_at  TEXT    NOT NULL
 );
 
@@ -246,6 +246,12 @@ Invariants enforced in the write transaction, not by triggers:
 Storage notes: local file path from configuration; WAL off in this slice (single
 process, short writes); `sqlite3` busy timeout configured; foreign keys enabled.
 `changed_fields` and `prior_state` are JSON text columns.
+
+`schema_version` holds one row per applied migration, so its primary key makes a
+double-applied migration impossible rather than merely unlikely; the current version
+is `MAX(version)`, and the migration runner writes the row inside the same transaction
+as the migration body. A description/checksum ledger entry is deliberately deferred
+while version 1 is the only migration.
 
 ## 6. Migration and compatibility
 

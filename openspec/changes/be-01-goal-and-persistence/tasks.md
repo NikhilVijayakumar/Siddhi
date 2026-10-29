@@ -34,15 +34,32 @@ Traceability: `design.md` §3; `proposal.md` constraints (NFR-033 controlled dep
 
 Covers: *Report and evolve the database schema version*, *Fail closed when a migration fails*.
 
-- [ ] 2.1 Failing tests: fresh database is created at version 1; a database recorded at
+- [x] 2.1 Failing tests: fresh database is created at version 1; a database recorded at
       a newer version is refused with both versions named; a migration that raises leaves
       the prior version and its rows readable.
-- [ ] 2.2 Add migration `001_initial_schema.sql` matching `api-contract.md` §5 exactly.
-- [ ] 2.3 Implement the migration runner: ordered files, one transaction each, recorded
+      `tests/adapters/sqlite/test_migrations.py` (7 tests: baseline, no backup on
+      creation, newer-version refusal, failed migration, duplicate versions, backup on
+      upgrade, connection pragmas). Written and confirmed failing first (ImportError).
+- [x] 2.2 Add migration `001_initial_schema.sql` matching `api-contract.md` §5.
+      Contract amended first: `schema_version.version` is now `INTEGER PRIMARY KEY`
+      (grill decision) so a double-applied migration fails instead of hiding. The
+      runner writes the ledger row; the SQL file is pure DDL.
+- [x] 2.3 Implement the migration runner: ordered files, one transaction each, recorded
       in `schema_version`, no down migrations.
-- [ ] 2.4 Take a pre-migration copy of the database file before applying any migration;
+      `src/siddhi/adapters/sqlite/runner.py`. Named `runner.py` because a
+      `migrations.py` module would be shadowed by the `migrations/` SQL directory.
+      Each script is split with `sqlite3.complete_statement`, applied under
+      `BEGIN IMMEDIATE`, and committed with its ledger row.
+- [x] 2.4 Take a pre-migration copy of the database file before applying any migration;
       on failure keep the copy and report the reached version.
-- [ ] 2.5 Tests pass, including the two failure scenarios.
+      `<db>.v<version>.<UTC stamp>.bak`, skipped when there is nothing to lose
+      (version 0). The copy is never restored automatically; the migration's own
+      rollback leaves the prior version readable. A WAL store is refused rather than
+      copied unsafely.
+- [x] 2.5 Tests pass, including the two failure scenarios.
+      `python -m pytest` → 7 passed. Non-zero process exit is not yet observable: no
+      process entrypoint exists until slice 6, which is where the typed errors map to
+      exit status and `503`.
 
 Traceability: `fun-01`/`tech-02` specs; `api-contract.md` §6;
 `knowledge/architecture/persistence.md`.

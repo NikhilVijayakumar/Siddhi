@@ -85,16 +85,25 @@ Covers: *Read Vyasa only through the agreed read-only interface*, *Validate the 
 contract and fail explicitly*, *Bound paging and reject a stalled cursor*,
 `design.md` §4, §6.
 
-- [ ] 4.1 Failing adapter tests against a scripted local process: handshake and two
+- [x] 4.1 Failing adapter tests against a scripted local process: handshake and two
       pages produce one inventory; a tool result marked as an error becomes
       `tool_error`; a different `schema_version` becomes `unsupported_contract`; a
       repeated cursor becomes `protocol_error`; a silent process becomes `timeout`;
       the process is terminated on success and failure.
-- [ ] 4.2 Implement `adapters/vyasa/mcp_source.py` with the stdlib stdio session,
+      Red evidence: `tests/adapters/vyasa` failed collection (`No module named
+      siddhi.adapters.vyasa.mcp_source`).
+- [x] 4.2 Implement `adapters/vyasa/mcp_source.py` with the stdlib stdio session,
       bounded paging, field validation and failure categories.
-- [ ] 4.3 Confirm no source message or executable path reaches a stored row, log line
+- [x] 4.3 Confirm no source message or executable path reaches a stored row, log line
       or response.
-- [ ] 4.4 Tests pass; record the evidence.
+      Evidence: adapter surfaces only `SourceError.category`; `test_a_tool_error_stays_a
+      _category_without_the_source_message` and the refresh contract test whose fake
+      message contains `E:\secret\...` both pass. The adapter logs nothing.
+- [x] 4.4 Tests pass; record the evidence.
+      Evidence: `tests/adapters/vyasa` → 10 passed; full suite → 106 passed, 1 warning.
+      Scenarios cover two pages, text-only answers, empty inventory, process close,
+      tool error, unsupported version, missing field, repeated cursor, timeout and a
+      missing executable.
 
 ## Slice 4: Health reports integration state truthfully
 

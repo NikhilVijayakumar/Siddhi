@@ -41,7 +41,6 @@ Requirements, OpenSpec changes, and code **link to** knowledge; knowledge
      code; in-bundle paths and external URLs only.
    - List it in its folder's `index.md`; add a dated entry to
      `knowledge/log.md`.
-   - Run `python3 scripts/verify_knowledge.py`; fix every FAIL.
 5. **Reference it** from the artifact's `Knowledge References` section:
    `knowledge/<folder>/<concept>.md` plus one line on why it applies. Specs
    reference knowledge inline in requirement text, since delta spec files

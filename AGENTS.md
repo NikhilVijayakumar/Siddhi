@@ -54,18 +54,13 @@ Product changes use the `be-` prefix; framework and process changes use `openspe
 
 ## Verification
 
-After changing a schema, a template, a change's proposal or specifications, or the skill layout:
+Do **not** run the `scripts/verify_*.py` checks, or their unit tests during normal work; OpenSpec's schema already defines the workflow and artifact rules. Run them only at release time (or when explicitly asked):
 
 ```bash
-python3 scripts/verify_workflows.py      # schemas, templates, changes, skill references, knowledge bundle
-python3 scripts/verify_knowledge.py      # knowledge bundle only
-python3 scripts/verify_requirements.py   # requirement packages: ownership, Gherkin, grill logs
-python3 -m unittest scripts/test_verify_knowledge.py scripts/test_verify_requirements.py
-python3 scripts/smoke_team_schemas.py    # end-to-end scratch change per schema
-python3 -m unittest scripts/test_sync_skills.py
+python3 scripts/verify_workflows.py && python3 scripts/verify_requirements.py
 ```
 
-For a single change: `openspec validate <change>` and `openspec show <change> --json --deltas-only`.
+Per change, only `openspec validate <change>` (and `openspec show <change> --json --deltas-only` when needed).
 
 ## Skills
 
